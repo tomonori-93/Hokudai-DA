@@ -6,6 +6,7 @@ MODULE obsope_tools
 ! [HISTORY:]
 !   November 2014  Guo-Yuan Lien  created
 !   .............  See git history for the following revisions
+!   Added comments by Satoki Tsujino
 !
 !=======================================================================
 !$USE OMP_LIB
@@ -33,7 +34,7 @@ MODULE obsope_tools
 CONTAINS
 
 !-----------------------------------------------------------------------
-! Observation operator calculation
+! Observation operator calculation (Checked by satoki)
 !-----------------------------------------------------------------------
 SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   IMPLICIT NONE
@@ -139,6 +140,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 !-------------------------------------------------------------------------------
 ! First scan of all observation data: Compute their horizontal location and time
 !-------------------------------------------------------------------------------
+  ! Comment by satoki 
+  ! Checking max obs number in each type, and counting total observation number
 
   nobs_all = 0
   nobs_max_per_file = 0
@@ -158,6 +161,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 !  obs_idx_TCY = -1
 !  obs_idx_TCP = -1
 
+  ! Comment by satoki 
+  ! Checking obs number per process, and allocating buffer arrays
   nobs_max_per_file_sub = (nobs_max_per_file - 1) / nprocs_a + 1
   allocate (obrank_bufs(nobs_max_per_file_sub))
   allocate (ri_bufs(nobs_max_per_file_sub))
@@ -205,13 +210,16 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 !          cycle
 !        end select
 
+        ! Comment by satoki: determining obs global(ig,jg) <- obs(lon,lat)
         call phys2ij(obs(iof)%lon(n), obs(iof)%lat(n), ri_bufs(ibufs), rj_bufs(ibufs))
+        ! Comment by satoki: determining obs rank number <- global(ig,jg)
         call rij_rank(ri_bufs(ibufs), rj_bufs(ibufs), obrank_bufs(ibufs))
       end do ! [ ibufs = 1, cntr(myrank_a+1) ]
 !$OMP END PARALLEL DO
 
       call mpi_timer('obsope_cal:first_scan_cal:', 2, barrier=MPI_COMM_a)
 
+      ! Comment by satoki: gathering obs information on rank, ig, jg from each process
       call MPI_ALLGATHERV(obrank_bufs, cntr(myrank_a+1), MPI_INTEGER, obs(iof)%rank, cntr, dspr, MPI_INTEGER, MPI_COMM_a, ierr)
       call MPI_ALLGATHERV(ri_bufs,     cntr(myrank_a+1), MPI_r_size,  obs(iof)%ri,   cntr, dspr, MPI_r_size,  MPI_COMM_a, ierr)
       call MPI_ALLGATHERV(rj_bufs,     cntr(myrank_a+1), MPI_r_size,  obs(iof)%rj,   cntr, dspr, MPI_r_size,  MPI_COMM_a, ierr)
@@ -254,6 +262,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
             bsn(islot_domain_out, 0) = bsn(islot_domain_out, 0) + 1
           else
             islot = ceiling(obs(iof)%dif(n) / SLOT_TINTERVAL - 0.5d0) + SLOT_BASE
+            ! process the observations out of range for the analysis period (Comment by satoki)
             if (islot < SLOT_START .or. islot > SLOT_END) then
               islot = islot_time_out
             end if
@@ -445,6 +454,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 
         call mpi_timer('', 2)
 
+        ! Reading ens. output from SCALE (Comment by satoki)
         call read_ens_history_iter(it, islot, v3dg, v2dg)
 
         write (timer_str, '(A30,I4,A7,I4,A2)') 'obsope_cal:read_ens_history(t=', it, ', slot=', islot, '):'
@@ -455,6 +465,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
           iof = obsda%set(nn)
           n = obsda%idx(nn)
 
+          ! Convert (ril,rjl) in local domain from the myrank and (rig,rjg) in global domain
+          ! for the observation (Comment by satoki)
           call rij_g2l(myrank_d, obs(iof)%ri(n), obs(iof)%rj(n), ril, rjl)
 
           if (.not. USE_OBS(obs(iof)%typ(n))) then
@@ -464,7 +476,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 
           select case (OBS_IN_FORMAT(iof))
           !=====================================================================
-          case (obsfmt_prepbufr)
+          case (obsfmt_prepbufr)  ! For prepbufr (Comment by satoki)
           !---------------------------------------------------------------------
             call phys2ijk(v3dg(:,:,:,iv3dd_p), obs(iof)%elm(n), ril, rjl, obs(iof)%lev(n), rk, obsda%qc(nn))
             if (obsda%qc(nn) == iqc_good) then
@@ -472,7 +484,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
                               obs(iof)%lon(n), obs(iof)%lat(n), v3dg, v2dg, obsda%val(nn), obsda%qc(nn))
             end if
           !=====================================================================
-          case (obsfmt_radar)
+          case (obsfmt_radar)  ! For radar (Comment by satoki)
           !---------------------------------------------------------------------
             if (obs(iof)%lev(n) > RADAR_ZMAX) then
               obsda%qc(nn) = iqc_radar_vhi
@@ -499,6 +511,10 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
           !---------------------------------------------------------------------
 
 #endif
+          !=====================================================================
+          case (obsfmt_h08vt)  ! For H08VT (Added by satoki)
+          !---------------------------------------------------------------------
+             write(*,*) "Under construction (satoki)"
           !=====================================================================
           end select
 
@@ -760,9 +776,9 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 
   return
 end subroutine obsope_cal
-
 !-----------------------------------------------------------------------
-! Observation generator calculation
+! Observation generator calculation (Checked by satoki)
+! Comment by satoki: Replacing obs%dat with observation based on the model variables. 
 !-----------------------------------------------------------------------
 SUBROUTINE obsmake_cal(obs)
   IMPLICIT NONE
@@ -999,6 +1015,7 @@ SUBROUTINE obsmake_cal(obs)
     allocate ( bufr(nobsmax) )
     allocate ( error(nobsall) )
 
+    !-- Comment by satoki: このルーチンがどこにも見当たらない (intrinsic?).
     call com_randn(nobsall, error) ! generate all random numbers at the same time
     ns = 0
   end if
@@ -1058,7 +1075,7 @@ SUBROUTINE obsmake_cal(obs)
 end subroutine obsmake_cal
 
 !-------------------------------------------------------------------------------
-! Model-to-observation simulator calculation
+! Model-to-observation simulator calculation (Checked by satoki)
 !-------------------------------------------------------------------------------
 subroutine obssim_cal(v3dgh, v2dgh, v3dgsim, v2dgsim, stggrd)
   use scale_grid, only: &
@@ -1151,7 +1168,7 @@ end subroutine obssim_cal
 
 !!!!!! it is not good to open/close a file many times for different steps !!!!!!
 !-------------------------------------------------------------------------------
-! Write the subdomain model data into a single GrADS file
+! Write the subdomain model data into a single GrADS file (Checked by satoki)
 !-------------------------------------------------------------------------------
 subroutine write_grd_mpi(filename, nv3dgrd, nv2dgrd, step, v3d, v2d)
   implicit none

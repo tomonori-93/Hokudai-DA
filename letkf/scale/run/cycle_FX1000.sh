@@ -1,14 +1,13 @@
 #!/bin/bash
 #===============================================================================
 #
-#  Wrap cycle.sh in a K-computer job script (micro) and run it.
-#
-#  February 2015, created,                Guo-Yuan Lien
+#  Wrap cycle.sh in an FX1000 job script and run it.
 #
 #-------------------------------------------------------------------------------
 #
 #  Usage:
-#    cycle_K_micro.sh [..]
+#    cycle_FX1000.sh [..]
+#  Author: Satoki Tsujino (Modified from cycle_ofp.sh)
 #
 #===============================================================================
 
@@ -19,20 +18,13 @@ job='cycle'
 #===============================================================================
 # Configuration
 
-. ./config.main || exit $?
-. ./config.${job} || exit $?
+. config.main || exit $?
+. config.${job} || exit $?
 
 . src/func_distribute.sh || exit $?
 . src/func_datetime.sh || exit $?
 . src/func_util.sh || exit $?
 . src/func_${job}.sh || exit $?
-
-#-------------------------------------------------------------------------------
-
-if ((USE_TMP_LINK == 1 || USE_TMPL == 1)); then
-  echo "[Error] $0: Wrong disk mode for K computer micro jobs." >&2
-  exit 1
-fi
 
 #-------------------------------------------------------------------------------
 
@@ -54,15 +46,13 @@ echo
 
 echo "[$(datetime_now)] Create and clean the temporary directory"
 
-if [ ${TMP:0:8} != '/scratch' ]; then
-  echo "[Error] $0: When using 'micro' resource group, \$TMP will be completely removed." >&2
-  echo "        Wrong setting detected:" >&2
-  echo "        \$TMP = '$TMP'" >&2
-  exit 1
-fi
+#if [ -e "${TMP}" ]; then
+#  echo "[Error] $0: \$TMP will be completely removed." >&2
+#  echo "        \$TMP = '$TMP'" >&2
+#  exit 1
+#fi
 safe_init_tmpdir $TMP || exit $?
 
-echo "Pass check satoki" "$@"; exit
 #===============================================================================
 # Determine the distibution schemes
 
@@ -77,11 +67,11 @@ declare -a proc2group
 declare -a proc2grpproc
 
 safe_init_tmpdir $NODEFILE_DIR || exit $?
-if ((IO_ARB == 1)); then                                             ##
-  distribute_da_cycle_set "$NODELIST_TYPE" $NODEFILE_DIR || exit $?  ##
-else                                                                 ##
-  distribute_da_cycle "$NODELIST_TYPE" $NODEFILE_DIR || exit $?
-fi                                                                   ##
+if ((IO_ARB == 1)); then                              ##
+  distribute_da_cycle_set - $NODEFILE_DIR || exit $?  ##
+else                                                  ##
+  distribute_da_cycle - $NODEFILE_DIR || exit $?
+fi                                                    ##
 
 #===============================================================================
 # Determine the staging list
@@ -141,32 +131,40 @@ jobscrp="$TMP/${job}_job.sh"
 
 echo "[$(datetime_now)] Create a job script '$jobscrp'"
 
-rscgrp="micro"
+if ((NNODES > 768)); then
+  rscgrp="fx-special"
+elif ((NNODES > 192)); then
+  rscgrp="fx-xlarge"
+elif ((NNODES > 96)); then
+  rscgrp="fx-large"
+elif ((NNODES > 24)); then
+  rscgrp="fx-midle"
+else
+  rscgrp="fx-small"
+fi
 
 cat > $jobscrp << EOF
 #!/bin/sh
-#PJM -N ${job}_${SYSNAME}
+# Satoki Tsujino
 #PJM --rsc-list "rscunit=fx"
-#PJM -S
+#PJM --rsc-list "rscgrp=${rscgrp}"
 #PJM --rsc-list "node=${NNODES}:noncont"
 #PJM --rsc-list "elapse=${TIME_LIMIT}"
-#PJM --rsc-list "rscgrp=${rscgrp}"
-###PJM --rsc-list "node-mem=29G"
-###PJM --mpi "shape=${NNODES}"
 #PJM --mpi "rank-map-bychip"
-#PJM --mpi "proc=${totalnp}"
-###PJM --mpi assign-online-node
-###PJM --stg-transfiles all
+#PJM --mpi "proc=$((NNODES*PPN))"
 
-#. /work/system/Env_base_1.2.0-25
-#export LD_LIBRARY_PATH=/opt/klocal/zlib-1.2.11-gnu/lib:\$LD_LIBRARY_PATH
+cd \${PJM_O_WORKDIR}
+echo "cd \${PJM_O_WORKDIR}"
+
 export OMP_NUM_THREADS=${THREADS}
 export PARALLEL=${THREADS}
+export MPI_NUM_PROCS=$totalnp
+export OMP_STACKSIZE=512000
+module unload netcdf-c netcdf-fortran phdf5 hdf5
+module load netcdf-c/4.7.3 netcdf-fortran/4.5.2 phdf5/1.10.6 hdf5/1.10.6
+module list
 
-module load netcdf-c netcdf-fortran phdf5/1.10.6 parallel-netcdf hdf5/1.10.6
-which mpiexec
-
-./${job}.sh "$STIME" "$ETIME" "$ISTEP" "$FSTEP" "$CONF_MODE" || exit \$?
+sh -x ./${job}.sh "$STIME" "$ETIME" "$ISTEP" "$FSTEP" "$CONF_MODE" || exit \$?
 EOF
 
 #===============================================================================
@@ -178,15 +176,15 @@ echo
 job_submit_PJM $jobscrp
 echo
 
-job_end_check_PJM_K $jobid
+job_end_check_PJM $jobid
 res=$?
 
 #===============================================================================
 # Stage out
 
-echo "[$(datetime_now)] Finalization (stage out)"
+#satoki echo "[$(datetime_now)] Finalization (stage out)"
 
-stage_out server || exit $?
+#satoki stage_out server || exit $?
 
 #===============================================================================
 # Finalization
@@ -194,7 +192,7 @@ stage_out server || exit $?
 echo "[$(datetime_now)] Finalization"
 echo
 
-backup_exp_setting $job $TMP $jobid ${job}_${SYSNAME} 'o e i' i
+backup_exp_setting $job $TMP $jobid ${job}_job.sh 'o e'
 
 if [ "$CONF_MODE" = 'static' ]; then
   config_file_save $TMPS/config || exit $?
@@ -202,12 +200,13 @@ fi
 
 archive_log
 
-if ((CLEAR_TMP == 1)); then
-  safe_rm_tmpdir $TMP
-fi
+#if ((CLEAR_TMP == 1)); then
+#  safe_rm_tmpdir $TMP
+#fi
 
 #===============================================================================
 
 echo "[$(datetime_now)] Finish $myname $@"
 
 exit $res
+echo "Pass check satoki"; exit

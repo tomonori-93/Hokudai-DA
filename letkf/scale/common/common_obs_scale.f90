@@ -8,6 +8,7 @@ MODULE common_obs_scale
 !   10/04/2012 Guo-Yuan Lien     modified for GFS model
 !   07/25/2014 Guo-Yuan Lien     modified for SCALE model
 !   .......... See git history for the following revisions
+!   02/23/2021 Satoki Tsujino    added a new ID for H08 Vt
 !
 !=======================================================================
 !
@@ -41,7 +42,8 @@ MODULE common_obs_scale
   IMPLICIT NONE
   PUBLIC
 
-  INTEGER,PARAMETER :: nid_obs_varlocal=9 !H08
+  INTEGER,PARAMETER :: nid_obs_varlocal=10 !H08
+!ORG(satoki)  INTEGER,PARAMETER :: nid_obs_varlocal=9 !H08
 !
 ! conventional observations
 !
@@ -69,19 +71,24 @@ MODULE common_obs_scale
 !
 ! Himawari-8 (H08) observations
 !
-  INTEGER,PARAMETER :: id_H08IR_obs=8800
+  INTEGER,PARAMETER :: id_h08ir_obs=8800
+  INTEGER,PARAMETER :: id_h08vt_obs=8900  ! by satoki
 
+  ! nid_obs in common_nml.f90 (satoki)
   INTEGER,PARAMETER :: elem_uid(nid_obs)= &
      (/id_u_obs, id_v_obs, id_t_obs, id_tv_obs, id_q_obs, id_rh_obs, &
        id_ps_obs, id_rain_obs, id_radar_ref_obs, id_radar_ref_zero_obs, id_radar_vr_obs, id_radar_prh_obs, &
-       id_H08IR_obs, id_tclon_obs, id_tclat_obs, id_tcmip_obs/)
+       id_H08IR_obs, id_tclon_obs, id_tclat_obs, id_tcmip_obs, id_H08VT_obs/)
+!ORG(satoki)       id_H08IR_obs, id_tclon_obs, id_tclat_obs, id_tcmip_obs/)
 
   CHARACTER(3),PARAMETER :: obelmlist(nid_obs)= &
      (/'  U', '  V', '  T', ' Tv', '  Q', ' RH', ' PS', 'PRC', 'REF', 'RE0', ' Vr', 'PRH',&
-       'H08', 'TCX', 'TCY', 'TCP'/)
+       'H08', 'TCX', 'TCY', 'TCP', 'HVt'/)
+!ORG(satoki)       'H08', 'TCX', 'TCY', 'TCP'/)
 
   CHARACTER(3),PARAMETER :: obelmlist_varlocal(nid_obs_varlocal)= &
-     (/'WND', '  T', 'MOI', ' PS', 'PRC', 'TCV', 'REF', ' Vr', 'H08'/)
+     (/'WND', '  T', 'MOI', ' PS', 'PRC', 'TCV', 'REF', ' Vr', 'H08', 'HVt'/)
+!ORG(satoki)     (/'WND', '  T', 'MOI', ' PS', 'PRC', 'TCV', 'REF', ' Vr', 'H08'/)
 
   ! Parameter 'nobtype' is set in common_nml.f90
   CHARACTER(6),PARAMETER :: obtypelist(nobtype)= &
@@ -89,24 +96,25 @@ MODULE common_obs_scale
        'VADWND', 'SATEMP', 'ADPSFC', 'SFCSHP', 'SFCBOG', &
        'SPSSMI', 'SYNDAT', 'ERS1DA', 'GOESND', 'QKSWND', &
        'MSONET', 'GPSIPW', 'RASSDA', 'WDSATR', 'ASCATW', &
-       'TMPAPR', 'PHARAD', 'H08IRB', 'TCVITL'/) ! H08
+       'TMPAPR', 'PHARAD', 'H08IRB', 'TCVITL', 'H08VTA'/) ! H08
+!ORG(satoki)       'TMPAPR', 'PHARAD', 'H08IRB', 'TCVITL'/) ! H08
 
   INTEGER,PARAMETER :: max_obs_info_meta = 3 ! maximum array size for type(obs_info)%meta
 
   TYPE obs_info
     INTEGER :: nobs = 0
     INTEGER,ALLOCATABLE :: elm(:)
-    REAL(r_size),ALLOCATABLE :: lon(:)
-    REAL(r_size),ALLOCATABLE :: lat(:)
-    REAL(r_size),ALLOCATABLE :: lev(:)
+    REAL(r_size),ALLOCATABLE :: lon(:)  ! longitude (Comment by satoki)
+    REAL(r_size),ALLOCATABLE :: lat(:)  ! latitude (Comment by satoki)
+    REAL(r_size),ALLOCATABLE :: lev(:)  ! level (Comment by satoki)
     REAL(r_size),ALLOCATABLE :: dat(:)
     REAL(r_size),ALLOCATABLE :: err(:)
     INTEGER,ALLOCATABLE :: typ(:)
     REAL(r_size),ALLOCATABLE :: dif(:)
     REAL(r_size) :: meta(max_obs_info_meta) = undef
-    REAL(r_size),ALLOCATABLE :: ri(:)
-    REAL(r_size),ALLOCATABLE :: rj(:)
-    INTEGER,ALLOCATABLE :: rank(:)
+    REAL(r_size),ALLOCATABLE :: ri(:)  ! obs x-poing in global domain (Comment by satoki)
+    REAL(r_size),ALLOCATABLE :: rj(:)  ! obs y-point in global domain (Comment by satoki)
+    INTEGER,ALLOCATABLE :: rank(:)  ! MPI rank corresponding to the area containing obs point (Comment by satoki)
   END TYPE obs_info
 
   TYPE obs_da_value
@@ -132,6 +140,7 @@ MODULE common_obs_scale
   character(obsformatlenmax), parameter :: obsfmt_prepbufr = 'PREPBUFR'
   character(obsformatlenmax), parameter :: obsfmt_radar    = 'RADAR'
   character(obsformatlenmax), parameter :: obsfmt_h08      = 'HIMAWARI8'
+  character(obsformatlenmax), parameter :: obsfmt_h08vt    = 'H08VT'  ! add by satoki
 !  integer, parameter :: nobsformats = 3
 !  character(obsformatlenmax), parameter :: obsformat(nobsformats) = &
 !    (/obsfmt_prepbufr, obsfmt_radar, obsfmt_h08/)
@@ -206,6 +215,8 @@ function uid_obs(id_obs)
     uid_obs = 15
   case(id_tcmip_obs)
     uid_obs = 16
+  case(id_h08vt_obs)  ! H08VT (adding by satoki)
+    uid_obs = 17
   case default
     uid_obs = -1     ! error
   end select
@@ -237,6 +248,8 @@ function uid_obs_varlocal(id_obs)
     uid_obs_varlocal = 8
   case(id_h08ir_obs)      ! H08
     uid_obs_varlocal = 9  ! H08
+  case(id_h08vt_obs)      ! H08VT (adding by satoki)
+    uid_obs_varlocal = 10
   case default
     uid_obs_varlocal = -1 ! error
   end select
@@ -1237,6 +1250,7 @@ SUBROUTINE phys2ijkz(z_full,ri,rj,rlev,rk,qc)
 END SUBROUTINE phys2ijkz
 !-----------------------------------------------------------------------
 ! Coordinate conversion
+! Comment by satoki: (rlon,rlat) -> (rig,rjg) in global domain
 !-----------------------------------------------------------------------
 SUBROUTINE phys2ij(rlon,rlat,rig,rjg)
   use scale_grid, only: &
@@ -1555,6 +1569,10 @@ subroutine monit_obs(v3dg,v2dg,topo,nobs,bias,rmse,monit_type,use_key,step)
             if (oqc(n) == iqc_ref_low) oqc(n) = iqc_good ! when process the observation operator, we don't care if reflectivity is too small
           end if
         end if
+      !=========================================================================
+      case (obsfmt_h08vt)
+      !-------------------------------------------------------------------------
+         write(*,*) "Under construction by satoki"
 #ifdef H08
       !=========================================================================
 !      case (obsfmt_h08)
@@ -2196,14 +2214,14 @@ SUBROUTINE read_obs(cfile,obs)
       wk(5) = real(y,kind=r_sngl)
       wk(6) = real(OBSERR_TCY,kind=r_sngl)
     END SELECT
-    obs%elm(n) = NINT(wk(1))
-    obs%lon(n) = REAL(wk(2),r_size)
-    obs%lat(n) = REAL(wk(3),r_size)
-    obs%lev(n) = REAL(wk(4),r_size)
-    obs%dat(n) = REAL(wk(5),r_size)
-    obs%err(n) = REAL(wk(6),r_size)
-    obs%typ(n) = NINT(wk(7))
-    obs%dif(n) = REAL(wk(8),r_size)
+    obs%elm(n) = NINT(wk(1))   ! variable type (nid_obs) (Comment by satoki)
+    obs%lon(n) = REAL(wk(2),r_size)  ! longitude [degree] (Comment by satoki)
+    obs%lat(n) = REAL(wk(3),r_size)  ! latitude [degree] (Comment by satoki)
+    obs%lev(n) = REAL(wk(4),r_size)  ! level [hPa or m] (Comment by satoki)
+    obs%dat(n) = REAL(wk(5),r_size)  ! obs value [unit] (Comment by satoki)
+    obs%err(n) = REAL(wk(6),r_size)  ! obs error [the same unit as "dat"] (Comment by satoki)
+    obs%typ(n) = NINT(wk(7))  ! integer corresponding to "obtypelist" array (Comment by satoki)
+    obs%dif(n) = REAL(wk(8),r_size)  ! obs time relative to analysis time [sec] (Comment by satoki)
   END DO
   CLOSE(iunit)
 
@@ -2620,6 +2638,8 @@ subroutine read_obs_all(obs)
       call get_nobs_radar(trim(OBS_IN_NAME(iof)), obs(iof)%nobs, obs(iof)%meta(1), obs(iof)%meta(2), obs(iof)%meta(3))
     case (obsfmt_h08)
       call get_nobs_H08(trim(OBS_IN_NAME(iof)),obs(iof)%nobs) ! H08
+    case (obsfmt_h08vt)
+      write(*,*) "Under construction by satoki"
     case default
       write(6,*) '[Error] Unsupported observation file format!'
       stop
@@ -2638,6 +2658,8 @@ subroutine read_obs_all(obs)
       call read_obs_radar(trim(OBS_IN_NAME(iof)),obs(iof))
     case (obsfmt_h08)
       call read_obs_H08(trim(OBS_IN_NAME(iof)),obs(iof)) ! H08
+    case (obsfmt_h08vt)
+      write(*,*) "Under construction by satoki"
     end select
   end do ! [ iof = 1, OBS_IN_NUM ]
 
@@ -2673,6 +2695,8 @@ subroutine write_obs_all(obs, missing, file_suffix)
       call write_obs_radar(trim(filestr),obs(iof),missing=missing_)
     case (obsfmt_h08)
       call write_obs_H08(trim(filestr),obs(iof),missing=missing_) ! H08
+    case (obsfmt_h08vt)
+      write(*,*) "Under construction by satoki"
     end select
   end do ! [ iof = 1, OBS_IN_NUM ]
 
@@ -3108,5 +3132,205 @@ SUBROUTINE write_obs_H08(cfile,obs,append,missing)
 
   RETURN
 END SUBROUTINE write_obs_H08
+
+!
+!-----------------------------------------------------------------------
+!   Himawari-8 VT obs subroutines by Satoki Tsujino (02/23/2021)
+!   Under construction
+!-----------------------------------------------------------------------
+!
+SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,lon,lat,v3d,v2d,yobs,plev_obs,qc,stggrd,yobs_H08_clr)
+  use scale_mapproj, only: &
+      MPRJ_rotcoef
+  use scale_H08_fwd
+  use scale_grid_index, only: &
+    KHALO
+
+  IMPLICIT NONE
+  INTEGER :: n, np, k, ch
+  INTEGER,INTENT(IN) :: nprof ! Num of Brightness Temp "Loc" observed by Himawari-8
+                              ! NOTE: multiple channels (obs) on each grid point !!
+  REAL(r_size),INTENT(IN) :: ri(nprof),rj(nprof)
+  REAL(r_size),INTENT(IN) :: lon(nprof),lat(nprof)
+  REAL(r_size),INTENT(IN) :: v3d(nlevh,nlonh,nlath,nv3dd)
+  REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)
+  INTEGER,INTENT(IN),OPTIONAL :: stggrd
+  REAL(RP) :: rotc(2)
+
+  INTEGER :: stggrd_ = 0
+
+! -- 2D (nlevh,nbtobs) or 1D (nbtobs) profiles for RTTOV --  
+  REAL(r_size) :: prs2d(nlevh,nprof)
+  REAL(r_size) :: tk2d(nlevh,nprof)
+  REAL(r_size) :: qv2d(nlevh,nprof)
+  REAL(r_size) :: qliq2d(nlevh,nprof)
+  REAL(r_size) :: qice2d(nlevh,nprof)
+
+  REAL(r_size) :: tsfc1d(nprof)
+  REAL(r_size) :: qsfc1d(nprof)
+  REAL(r_size) :: psfc1d(nprof)
+  REAL(r_size) :: usfc1d(nprof)
+  REAL(r_size) :: vsfc1d(nprof)
+  REAL(r_size) :: lon1d(nprof)
+  REAL(r_size) :: lat1d(nprof)
+  REAL(r_size) :: topo1d(nprof)
+  REAL(r_size) :: lsmask1d(nprof)
+
+! -- brightness temp from RTTOV
+  REAL(r_size) :: btall_out(nch,nprof) ! NOTE: RTTOV always calculates all (10) channels!!
+  REAL(r_size) :: btclr_out(nch,nprof) ! NOTE: RTTOV always calculates all (10) channels!!
+! -- transmittance from RTTOV
+  REAL(r_size) :: trans_out(nlev,nch,nprof)
+ 
+  REAL(r_size) :: max_weight(nch,nprof)
+  REAL(r_size) :: tmp_weight
+
+  REAL(r_size),INTENT(OUT) :: yobs(nprof*nch)
+  REAL(r_size),OPTIONAL,INTENT(OUT) :: yobs_H08_clr(nprof*nch)
+  INTEGER,INTENT(OUT) :: qc(nprof*nch)
+  REAL(r_size),INTENT(OUT) :: plev_obs(nch*nprof)
+
+  REAL(r_size) :: rdp ! delta p
+  INTEGER :: slev, elev
+
+  REAL(r_size) :: utmp, vtmp ! U10m & V10m tmp for rotation
+
+  if (present(stggrd)) stggrd_ = stggrd
+
+  yobs = undef
+  qc = iqc_good
+
+  lon1d(:) = lon(:)
+  lat1d(:) = lat(:)
+
+! -- make profile arrays for RTTOV --
+  DO np = 1, nprof ! -- make profiles
+
+    CALL itpl_2d(v2d(:,:,iv2dd_skint),ri(np),rj(np),tsfc1d(np)) ! T2 is better??
+!    CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri(np),rj(np),tsfc1d(np))
+    CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri(np),rj(np),qsfc1d(np))
+    CALL itpl_2d(v2d(:,:,iv2dd_topo),ri(np),rj(np),topo1d(np))
+    CALL itpl_2d(v2d(:,:,iv2dd_lsmask),ri(np),rj(np),lsmask1d(np))
+    CALL itpl_2d(v2d(:,:,iv2dd_ps),ri(np),rj(np),psfc1d(np))
+!    call prsadj(yobs,rk-topo,t,q)
+!    if (abs(rk-topo) > PS_ADJUST_THRES) then
+!      write (6,'(A,F6.1)') '[Warning] PS observation height adjustment exceeds the threshold. dz=', abs(rk-topo)
+!      qc = iqc_ps_ter
+!    end if
+
+    if (stggrd_ == 1) then
+      CALL itpl_2d(v2d(:,:,iv2dd_u10m),ri(np)-0.5,rj(np),utmp)  !###### should modity itpl_3d to prevent '1.0' problem....??
+      CALL itpl_2d(v2d(:,:,iv2dd_v10m),ri(np),rj(np)-0.5,vtmp)  !######
+    else
+      CALL itpl_2d(v2d(:,:,iv2dd_u10m),ri(np),rj(np),utmp)
+      CALL itpl_2d(v2d(:,:,iv2dd_v10m),ri(np),rj(np),vtmp)
+    end if
+    call MPRJ_rotcoef(rotc,lon(np)*deg2rad,lat(np)*deg2rad)
+    usfc1d(np) = utmp * rotc(1) - vtmp * rotc(2)
+    vsfc1d(np) = utmp * rotc(2) + vtmp * rotc(1)
+
+    CALL itpl_2d_column(v3d(:,:,:,iv3dd_p),ri(np),rj(np),prs2d(:,np))
+    CALL itpl_2d_column(v3d(:,:,:,iv3dd_t),ri(np),rj(np),tk2d(:,np))
+    CALL itpl_2d_column(v3d(:,:,:,iv3dd_q),ri(np),rj(np),qv2d(:,np))
+    CALL itpl_2d_column(v3d(:,:,:,iv3dd_qc),ri(np),rj(np),qliq2d(:,np))
+    CALL itpl_2d_column((v3d(:,:,:,iv3dd_qi) &
+                       + v3d(:,:,:,iv3dd_qs) &
+                       + v3d(:,:,:,iv3dd_qg)),ri(np),rj(np),qice2d(:,np))
+
+  ENDDO ! -- make profiles
+
+
+!
+! -- NOTE: The channel number for RTTOV is always 10, because it should be the same
+!          with that in Himawari-8 RTTOV coef files.
+!
+!        : Satellite zenith angles are computed within SCALE_RTTOV_fwd using (lon,lat).
+!
+
+  slev = 1 + KHALO
+  elev = nlevh - KHALO
+
+  CALL SCALE_RTTOV_fwd(nch, & ! num of channels
+                       nlev,& ! num of levels
+                       nprof,& ! num of profs
+                       prs2d(elev:slev:-1,1:nprof),& ! (Pa)
+                       tk2d(elev:slev:-1,1:nprof),& ! (K)
+                       qv2d(elev:slev:-1,1:nprof),& ! (kg/kg)
+                       qliq2d(elev:slev:-1,1:nprof),& ! (kg/kg)
+                       qice2d(elev:slev:-1,1:nprof),& ! (kg/kg)
+                       tsfc1d(1:nprof),& ! (K)
+                       qsfc1d(1:nprof),& ! (kg/kg)
+                       psfc1d(1:nprof),& ! (Pa)
+                       usfc1d(1:nprof),& ! (m/s)
+                       vsfc1d(1:nprof),& ! (m/s)
+                       topo1d(1:nprof),& ! (m)
+                       lon1d(1:nprof),& ! (deg)
+                       lat1d(1:nprof),& ! (deg)
+                       lsmask1d(1:nprof),& ! (0-1)
+                       btall_out(1:nch,1:nprof),& ! (K)
+                       btclr_out(1:nch,1:nprof),& ! (K)
+                       trans_out(nlev:1:-1,1:nch,1:nprof))
+!
+! -- Compute max weight level using trans_out 
+! -- (Transmittance from each user pressure level to Top Of the Atmosphere)
+! -- btall_out is substituted into yobs
+
+  n = 0
+  DO np = 1, nprof
+  DO ch = 1, nch
+    n = n + 1
+
+    rdp = 1.0d0 / (prs2d(slev+1,np) - prs2d(slev,np))
+    max_weight(ch,np) = abs((trans_out(2,ch,np) - trans_out(1,ch,np)) * rdp )
+
+
+    plev_obs(n) = (prs2d(slev+1,np) + prs2d(slev,np)) * 0.5d0 ! (Pa)
+
+    DO k = 2, nlev-1
+
+      rdp = 1.0d0 / abs(prs2d(slev+k,np) - prs2d(slev+k-1,np))
+      tmp_weight = (trans_out(k+1,ch,np) - trans_out(k,ch,np)) * rdp 
+      if(tmp_weight > max_weight(ch,np))then
+        max_weight(ch,np) = tmp_weight
+        plev_obs(n) = (prs2d(slev+k,np) + prs2d(slev+k-1,np)) * 0.5d0 ! (Pa)
+      endif
+    ENDDO
+
+    yobs(n) = btall_out(ch,np)
+!
+! ## comment out by T.Honda (02/09/2016)
+! -- tentative QC here --
+!    IF(plev_obs(n) >= H08_LIMIT_LEV)THEN
+!      qc(n) = iqc_good
+!    ELSE
+!      qc(n) = iqc_obs_bad
+!    ENDIF
+
+    SELECT CASE(H08_CH_USE(ch))
+    CASE(1)
+      qc(n) = iqc_good
+    CASE DEFAULT
+      qc(n) = iqc_obs_bad
+    END SELECT
+
+    IF(H08_REJECT_LAND .and. (lsmask1d(np) > 0.5d0))THEN
+      qc(n) = iqc_obs_bad
+    ENDIF
+
+    IF(abs(btall_out(ch,np) - btclr_out(ch,np)) > H08_CLDSKY_THRS)THEN
+! Cloudy sky
+      yobs(n) = yobs(n) * (-1.0d0)
+    ELSE
+! Clear sky
+      yobs(n) = yobs(n) * 1.0d0
+    ENDIF
+   
+    yobs_H08_clr(n) = btclr_out(ch,np)
+
+  ENDDO ! ch
+  ENDDO ! np
+
+  RETURN
+END SUBROUTINE Trans_XtoY_H08VT
 
 END MODULE common_obs_scale

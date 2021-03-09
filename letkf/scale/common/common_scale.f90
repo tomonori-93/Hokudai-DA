@@ -1176,7 +1176,7 @@ end subroutine read_history_par
 #endif
 
 !-------------------------------------------------------------------------------
-! Transform the SCALE restart variables to the LETKF state variables
+! Transform the SCALE restart variables to the LETKF state variables (Checked by satoki)
 !-------------------------------------------------------------------------------
 subroutine state_trans(v3dg)
   use scale_tracer, only: TRACER_CV
@@ -1224,7 +1224,7 @@ subroutine state_trans(v3dg)
 end subroutine state_trans
 
 !-------------------------------------------------------------------------------
-! Inversely transform the LETKF state variables to the SCALE restart variables
+! Inversely transform the LETKF state variables to the SCALE restart variables (Checked by satoki)
 !-------------------------------------------------------------------------------
 subroutine state_trans_inv(v3dg)
   use scale_tracer, only: TRACER_CV
@@ -1281,7 +1281,7 @@ end subroutine state_trans_inv
 
 !-------------------------------------------------------------------------------
 ! Transform the LETKF state variables to the variables in SCALE history files
-! (with HALO), so that they can be used for observation operator calculation
+! (with HALO), so that they can be used for observation operator calculation (Checked by satoki)
 !-------------------------------------------------------------------------------
 ! [INPUT]
 !   v3dg, v2dg   : 3D, 2D state variables
@@ -1610,6 +1610,7 @@ subroutine enssprd_grd(mem, nens, nij, v3d, v2d, v3ds, v2ds)
   return
 end subroutine enssprd_grd
 
+!-- Checked by satoki belows
 !-------------------------------------------------------------------------------
 ! Convert 1D rank of process to 2D rank
 !-------------------------------------------------------------------------------
@@ -1698,6 +1699,8 @@ end subroutine rij_g2l
 
 !-------------------------------------------------------------------------------
 ! Convert <real> local grid coordinates (i,j) to global given the 1D rank of process
+! Comment by satoki: determining point(ig,jg) in global domain from point(il,jl)
+!                    in local domain and MPI rank
 !-------------------------------------------------------------------------------
 subroutine rij_l2g(rank, il, jl, ig, jg)
   implicit none
@@ -1718,6 +1721,11 @@ end subroutine rij_l2g
 !-------------------------------------------------------------------------------
 ! Given <real> global grid coordinates (i,j), return the 1D rank of process 
 ! * HALO grids are used
+! Comment by satoki: determining the MPI rank corresponding to the area where
+!                    point (ig,jg) is contained. 
+!                    (ex., (1,1) -> rank==0, west-south side)
+!                    (101,101) -> rank==3, in case of one local domain with 100x100
+!                                          and the global domain with 200x200
 !-------------------------------------------------------------------------------
 ! [INPUT]
 !   ig, jg : global grid coordinates

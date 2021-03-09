@@ -41,6 +41,7 @@ local MAX_NP=${3:-none}
 # Determine optimal numbers of nodes ($mem_nodes) and processes ($mem_np)
 # based on the number of members ($MEM) and total nodes ($NNODES_APPAR) and processes per node ($PPN_APPAR).
 # The 'optimal' here means minimum $mem_np but still can occupy all avaiable processes at once.
+# (satoki): mem_nodes = nodes per member, mem_np = processes per member
 
 if ((NNODES_APPAR >= MEM)); then
   mem_nodes=$((NNODES_APPAR/MEM))
@@ -147,16 +148,17 @@ if ((USE_CACHE == 0)); then
   done
 fi # ((USE_CACHE == 0))
 
-if ((mem_nodes > 1)); then
-  n_mem=$((NNODES_APPAR / mem_nodes))
-  n_mempn=1
-else
+# (satoki): determine numbers 
+if ((mem_nodes > 1)); then             # (satoki): mem_nodes = nodes per member
+  n_mem=$((NNODES_APPAR / mem_nodes))  # (satoki): Number of members that use one round of nodes
+  n_mempn=1                            # (satoki): Number of members that run in parallel in a node
+else                                   # (satoki): case of 1 node per 1 member
   n_mem=$NNODES_APPAR
-  n_mempn=$((PPN_APPAR / mem_np))
+  n_mempn=$((PPN_APPAR / mem_np))      # (satoki): mem_np = Number of processes for a member
 fi
 repeat_mems=$n_mem
 parallel_mems=$((n_mem * n_mempn))
-nitmax=$(((MEM - 1) / (n_mem * n_mempn) + 1))
+nitmax=$(((MEM - 1) / (n_mem * n_mempn) + 1))  # == (MEM - 1) / (paralle_mems) + 1
 local tppn=$((mem_np / mem_nodes))
 local tmod=$((mem_np % mem_nodes))
 

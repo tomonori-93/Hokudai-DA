@@ -47,6 +47,8 @@ elif [ "$PRESET" = 'K_micro' ]; then
   MPI_TYPE='K'
 #elif [ "$PRESET" = 'K_interact' ]; then
 #  ...
+elif [ "$PRESET" = 'FX1000' ]; then
+  MPI_TYPE='K'
 elif [ "$PRESET" = 'OFP' ]; then
   NODELIST_TYPE='machinefile'
   MPI_TYPE='impi'
@@ -179,11 +181,13 @@ done
 
 #-------------------------------------------------------------------------------
 
-USE_INIT_FROM_BDY=0
+USE_INIT_FROM_BDY=1
+#ORG satoki USE_INIT_FROM_BDY=0
 if (((OCEAN_INPUT == 1 && OCEAN_FORMAT == 99) || \
      (LAND_INPUT == 1 && LAND_FORMAT == 99))); then
   USE_INIT_FROM_BDY=1
 fi
+echo "USE_INIT_FROM_BDY = " $USE_INIT_FROM_BDY
 
 #-------------------------------------------------------------------------------
 

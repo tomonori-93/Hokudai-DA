@@ -2,6 +2,7 @@ program obssim
 !=======================================================================
 !
 ! [PURPOSE:] Main program of model-to-observation simulator
+! これはどこで使われているのか未確認 (satoki) -> シェルスクリプトチェック
 !
 !=======================================================================
 !$use OMP_LIB
@@ -77,7 +78,7 @@ program obssim
       allocate (topog(nlon,nlat))
 
       call read_restart(OBSSIM_RESTART_IN_BASENAME, v3dg, v2dg)
-      call state_trans(v3dg)
+      call state_trans(v3dg)  ! Transform the SCALE var to the LETKF state var (Comment by satoki)
       call read_topo(OBSSIM_TOPO_IN_BASENAME, topog)
       call state_to_history(v3dg, v2dg, topog, v3dgh, v2dgh)
 

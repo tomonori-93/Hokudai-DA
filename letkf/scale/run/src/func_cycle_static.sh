@@ -610,17 +610,17 @@ while ((time <= ETIME)); do
           elif ((BDY_FORMAT == 4)); then
             data_bdy_i="$DATA_BDY_GRADS"
             filenum=3
-            filename_prefix[1]='atm_'
+            filename_prefix[1]='ATM_'
             filename_suffix[1]='.grd'
-            filenamein_prefix[1]='atm_'
+            filenamein_prefix[1]='ATM_'
             filenamein_suffix[1]='.grd'
-            filename_prefix[2]='sfc_'
+            filename_prefix[2]='SFC_'
             filename_suffix[2]='.grd'
-            filenamein_prefix[2]='sfc_'
+            filenamein_prefix[2]='SFC_'
             filenamein_suffix[2]='.grd'
-            filename_prefix[3]='land_'
+            filename_prefix[3]='LAND_'
             filename_suffix[3]='.grd'
-            filenamein_prefix[3]='lnd_'
+            filenamein_prefix[3]='LND_'
             filenamein_suffix[3]='.grd'
           fi
 
@@ -761,9 +761,9 @@ while ((time <= ETIME)); do
           bdy_no_suffix=
         fi
         cat $SCRP_DIR/config.nml.grads_boundary | \
-            sed -e "s#--FNAME_ATMOS--#${TMPROOT_BDYDATA}/${mem_bdy}/bdyorg_atm_$(datetime_scale $time_bdy_start_prev)${bdy_no_suffix}#g" \
-                -e "s#--FNAME_SFC--#${TMPROOT_BDYDATA}/${mem_bdy}/bdyorg_sfc_$(datetime_scale $time_bdy_start_prev)${bdy_no_suffix}#g" \
-                -e "s#--FNAME_LAND--#${TMPROOT_BDYDATA}/${mem_bdy}/bdyorg_lnd_$(datetime_scale $time_bdy_start_prev)${bdy_no_suffix}#g" \
+            sed -e "s#--FNAME_ATMOS--#${TMPROOT_BDYDATA}/${mem_bdy}/bdyorg_ATM_$(datetime_scale $time_bdy_start_prev)${bdy_no_suffix}#g" \
+                -e "s#--FNAME_SFC--#${TMPROOT_BDYDATA}/${mem_bdy}/bdyorg_SFC_$(datetime_scale $time_bdy_start_prev)${bdy_no_suffix}#g" \
+                -e "s#--FNAME_LAND--#${TMPROOT_BDYDATA}/${mem_bdy}/bdyorg_LND_$(datetime_scale $time_bdy_start_prev)${bdy_no_suffix}#g" \
             > $CONFIG_DIR/${conf_file}
 
         if ((stage_config == 1)); then
@@ -871,10 +871,10 @@ while ((time <= ETIME)); do
               -e "/!--ATMOS_PHY_RD_MSTRN_AEROPARA_IN_FILENAME--/a ATMOS_PHY_RD_MSTRN_AEROPARA_IN_FILENAME = \"${TMPROOT_CONSTDB}/dat/rad/PARAPC.29\"," \
               -e "/!--ATMOS_PHY_RD_MSTRN_HYGROPARA_IN_FILENAME--/a ATMOS_PHY_RD_MSTRN_HYGROPARA_IN_FILENAME = \"${TMPROOT_CONSTDB}/dat/rad/VARDATA.RM29\"," \
               -e "/!--ATMOS_PHY_RD_PROFILE_CIRA86_IN_FILENAME--/a ATMOS_PHY_RD_PROFILE_CIRA86_IN_FILENAME = \"${TMPROOT_CONSTDB}/dat/rad/cira.nc\"," \
-              -e "/!--ATMOS_PHY_RD_PROFILE_MIPAS2001_IN_BASENAME--/a ATMOS_PHY_RD_PROFILE_MIPAS2001_IN_BASENAME = \"${TMPROOT_CONSTDB}/dat/rad/MIPAS\"," \
-              -e "/!--TIME_END_RESTART_OUT--/a TIME_END_RESTART_OUT = .false.," \
-              -e "/!--RESTART_OUT_ADDITIONAL_COPIES--/a RESTART_OUT_ADDITIONAL_COPIES = ${RESTART_OUT_ADDITIONAL_COPIES}," \
-              -e "/!--RESTART_OUT_ADDITIONAL_BASENAME--/a RESTART_OUT_ADDITIONAL_BASENAME = ${RESTART_OUT_ADDITIONAL_BASENAME}")"
+              -e "/!--ATMOS_PHY_RD_PROFILE_MIPAS2001_IN_BASENAME--/a ATMOS_PHY_RD_PROFILE_MIPAS2001_IN_BASENAME = \"${TMPROOT_CONSTDB}/dat/rad/MIPAS\",")"
+              #ORG satoki -e "/!--TIME_END_RESTART_OUT--/a TIME_END_RESTART_OUT = .false.," \
+              #ORG satoki -e "/!--RESTART_OUT_ADDITIONAL_COPIES--/a RESTART_OUT_ADDITIONAL_COPIES = ${RESTART_OUT_ADDITIONAL_COPIES}," \
+              #ORG satoki -e "/!--RESTART_OUT_ADDITIONAL_BASENAME--/a RESTART_OUT_ADDITIONAL_BASENAME = ${RESTART_OUT_ADDITIONAL_BASENAME}")"
       if ((d == 1)); then
         conf="$(echo "$conf" | \
             sed -e "/!--ATMOS_BOUNDARY_IN_BASENAME--/a ATMOS_BOUNDARY_IN_BASENAME = \"${mem_bdy}/bdy_$(datetime_scale $time)\"," \

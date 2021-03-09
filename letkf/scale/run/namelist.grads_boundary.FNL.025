@@ -1,0 +1,33 @@
+#
+# Dimension 
+#
+&nml_grads_grid
+ outer_nx = 1440
+ outer_ny = 721
+ outer_nz = 31
+ outer_nl = 4
+/
+
+#
+# Variables
+#
+&grdvar  item='lon',     dtype='linear',  swpoint=120.0d0,  dd=0.25d0  /
+&grdvar  item='lat',     dtype='linear',  swpoint=5.0d0, dd=0.25d0 /
+&grdvar  item='plev',    dtype='levels',  lnum=31, lvars=100000,97500,95000,92500,90000,85000,80000,75000,70000,65000,60000,55000,50000,45000,40000,35000,30000,25000,20000,15000,10000,7000,5000,3000,2000,1000,700,500,300,200,100 /
+&grdvar  item='HGT',     dtype='map',     fname='ATM', startrec=1,   totalrec=186 /
+&grdvar  item='U',       dtype='map',     fname='ATM', startrec=32,  totalrec=186 /
+&grdvar  item='V',       dtype='map',     fname='ATM', startrec=63,  totalrec=186 /
+&grdvar  item='T',       dtype='map',     fname='ATM', startrec=125,  totalrec=186 /
+&grdvar  item='RH',      dtype='map',     fname='ATM', startrec=156, totalrec=186 /
+&grdvar  item='PSFC',    dtype='map',     fname='SFC', startrec=1, totalrec=7 /
+&grdvar  item='TOPO',    dtype='map',     fname='SFC', startrec=2, totalrec=7 /
+&grdvar  item='MSLP',    dtype='map',     fname='SFC', startrec=1, totalrec=9 /
+&grdvar  item='SKINT',   dtype='map',     fname='SFC', startrec=3, totalrec=7 /
+&grdvar  item='lsmask',  dtype='map',     fname='SFC', startrec=5, totalrec=9 /
+&grdvar  item='T2',      dtype='map',     fname='SFC', startrec=4, totalrec=7 /
+&grdvar  item='RH2',     dtype='map',     fname='SFC', startrec=5, totalrec=7 /
+&grdvar  item='U10',     dtype='map',     fname='SFC', startrec=6, totalrec=7 /
+&grdvar  item='V10',     dtype='map',     fname='SFC', startrec=7, totalrec=7 /
+&grdvar  item='llev',    dtype='levels',  lnum=4, lvars=0.05,0.25,0.70,1.50, /
+&grdvar  item='STEMP',   dtype='map',     fname='ATM', startrec=125, totalrec=4, missval=9.999e+20 /
+&grdvar  item='SMOISVC', dtype='map',     fname='LND', startrec=5, totalrec=8, missval=9.999e+20 /

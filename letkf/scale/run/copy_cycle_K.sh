@@ -1,36 +1,43 @@
-#!/bin/bash
+#!/bin/sh
 #===============================================================================
 #
-#  Wrap cycle.sh in a K-computer job script (micro) and run it.
+#  Wrap cycle.sh in a K-computer job script and run it.
 #
-#  February 2015, created,                Guo-Yuan Lien
+#  October 2014, created,                 Guo-Yuan Lien
 #
 #-------------------------------------------------------------------------------
 #
 #  Usage:
-#    cycle_K_micro.sh [..]
+#    cycle_K.sh [..]
 #
 #===============================================================================
-
-cd "$(dirname "$0")"
+#cd "$(dirname "$0")"
 myname="$(basename "$0")"
 job='cycle'
 
 #===============================================================================
 # Configuration
 
-. ./config.main || exit $?
-. ./config.${job} || exit $?
+. config.main || exit $?
+. config.${job} || exit $?
 
 . src/func_distribute.sh || exit $?
 . src/func_datetime.sh || exit $?
 . src/func_util.sh || exit $?
 . src/func_${job}.sh || exit $?
 
+STAGING_DIR="$TMPSL/staging"
+NODEFILE_DIR="$TMPS/node"
+
 #-------------------------------------------------------------------------------
 
-if ((USE_TMP_LINK == 1 || USE_TMPL == 1)); then
-  echo "[Error] $0: Wrong disk mode for K computer micro jobs." >&2
+if ((USE_TMP_LINK == 1)); then
+  echo "[Error] $0: Wrong disk mode for K computer staged jobs." >&2
+  exit 1
+fi
+
+if [ "$PRESET" = 'K_rankdir' ] && ((PNETCDF == 1)); then
+  echo "[Error] When PNETCDF is enabled, 'K_rankdir' preset cannot be used." 1>&2
   exit 1
 fi
 
@@ -54,15 +61,8 @@ echo
 
 echo "[$(datetime_now)] Create and clean the temporary directory"
 
-if [ ${TMP:0:8} != '/scratch' ]; then
-  echo "[Error] $0: When using 'micro' resource group, \$TMP will be completely removed." >&2
-  echo "        Wrong setting detected:" >&2
-  echo "        \$TMP = '$TMP'" >&2
-  exit 1
-fi
-safe_init_tmpdir $TMP || exit $?
+safe_init_tmpdir $TMPS || exit $?
 
-echo "Pass check satoki" "$@"; exit
 #===============================================================================
 # Determine the distibution schemes
 
@@ -88,14 +88,13 @@ fi                                                                   ##
 
 echo "[$(datetime_now)] Determine the staging list"
 
-cat $SCRP_DIR/config.main | \
-    sed -e "/\(^DIR=\| DIR=\)/c DIR=\"$DIR\"" \
-    > $TMP/config.main
+cp -L $SCRP_DIR/config.main $TMPS/config.main
 
-echo "SCRP_DIR=\"\$TMPROOT\"" >> $TMP/config.main
-echo "RUN_LEVEL=4" >> $TMP/config.main
+echo "SCRP_DIR=\"\$TMPROOT\"" >> $TMPS/config.main
+echo "NODEFILE_DIR=\"\$TMPROOT/node\"" >> $TMPS/config.main
+echo "RUN_LEVEL=4" >> $TMPS/config.main
 
-echo "PARENT_REF_TIME=$PARENT_REF_TIME" >> $TMP/config.main
+echo "PARENT_REF_TIME=$PARENT_REF_TIME" >> $TMPS/config.main
 
 safe_init_tmpdir $STAGING_DIR || exit $?
 if [ "$CONF_MODE" = 'static' ]; then
@@ -109,10 +108,12 @@ fi
 # Add shell scripts and node distribution files into the staging list
 
 cat >> ${STAGING_DIR}/${STGINLIST} << EOF
+${TMPS}/config.main|config.main
 ${SCRP_DIR}/config.rc|config.rc
 ${SCRP_DIR}/config.${job}|config.${job}
 ${SCRP_DIR}/${job}.sh|${job}.sh
 ${SCRP_DIR}/src/|src/
+${NODEFILE_DIR}/|node/
 EOF
 
 if [ "$CONF_MODE" != 'static' ]; then
@@ -128,46 +129,60 @@ if ((IO_ARB == 1)); then                                              ##
 fi                                                                    ##
 
 #===============================================================================
-# Stage in
-
-echo "[$(datetime_now)] Initialization (stage in)"
-
-stage_in server || exit $?
-
-#===============================================================================
 # Creat a job script
 
-jobscrp="$TMP/${job}_job.sh"
+jobscrp="${job}_job.sh"
 
 echo "[$(datetime_now)] Create a job script '$jobscrp'"
 
-rscgrp="micro"
+if ((NNODES > 36864)); then
+  rscgrp="fx-xlarge"
+elif ((NNODES > 384)); then
+  rscgrp="fx-large"
+else
+  rscgrp="fx-small"
+fi
 
 cat > $jobscrp << EOF
 #!/bin/sh
 #PJM -N ${job}_${SYSNAME}
 #PJM --rsc-list "rscunit=fx"
 #PJM -S
-#PJM --rsc-list "node=${NNODES}:noncont"
+#PJM --rsc-list "node=${NNODES}"
 #PJM --rsc-list "elapse=${TIME_LIMIT}"
 #PJM --rsc-list "rscgrp=${rscgrp}"
-###PJM --rsc-list "node-mem=29G"
-###PJM --mpi "shape=${NNODES}"
-#PJM --mpi "rank-map-bychip"
+##PJM --rsc-list "node-mem=29G"
+##PJM --mpi "shape=${NNODES}"
 #PJM --mpi "proc=${totalnp}"
-###PJM --mpi assign-online-node
-###PJM --stg-transfiles all
+#PJM --mpi assign-online-node
+#PJM --stg-transfiles all
+EOF
 
-#. /work/system/Env_base_1.2.0-25
-#export LD_LIBRARY_PATH=/opt/klocal/zlib-1.2.11-gnu/lib:\$LD_LIBRARY_PATH
+if [ "$PRESET" = 'K_rankdir' ]; then
+  echo "#PJM --mpi \"use-rankdir\"" >> $jobscrp
+  stage_K_inout 1
+else
+  stage_K_inout 0
+fi
+
+cat >> $jobscrp << EOF
+
+. /work/system/Env_base_1.2.0-25
+export LD_LIBRARY_PATH=/opt/klocal/zlib-1.2.11-gnu/lib:\$LD_LIBRARY_PATH
 export OMP_NUM_THREADS=${THREADS}
 export PARALLEL=${THREADS}
 
-module load netcdf-c netcdf-fortran phdf5/1.10.6 parallel-netcdf hdf5/1.10.6
-which mpiexec
-
 ./${job}.sh "$STIME" "$ETIME" "$ISTEP" "$FSTEP" "$CONF_MODE" || exit \$?
 EOF
+
+#===============================================================================
+# Check the staging list
+
+echo "[$(datetime_now)] Run pjstgchk"
+echo
+
+pjstgchk $jobscrp || exit $?
+echo
 
 #===============================================================================
 # Run the job
@@ -182,19 +197,12 @@ job_end_check_PJM_K $jobid
 res=$?
 
 #===============================================================================
-# Stage out
-
-echo "[$(datetime_now)] Finalization (stage out)"
-
-stage_out server || exit $?
-
-#===============================================================================
 # Finalization
 
 echo "[$(datetime_now)] Finalization"
 echo
 
-backup_exp_setting $job $TMP $jobid ${job}_${SYSNAME} 'o e i' i
+backup_exp_setting $job $SCRP_DIR $jobid ${job}_${SYSNAME} 'o e i s' i
 
 if [ "$CONF_MODE" = 'static' ]; then
   config_file_save $TMPS/config || exit $?
@@ -203,7 +211,8 @@ fi
 archive_log
 
 if ((CLEAR_TMP == 1)); then
-  safe_rm_tmpdir $TMP
+  safe_rm_tmpdir $TMPS
+  safe_rm_tmpdir $TMPSL
 fi
 
 #===============================================================================

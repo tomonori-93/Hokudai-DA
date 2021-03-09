@@ -2,6 +2,7 @@ PROGRAM obsmake
 !=======================================================================
 !
 ! [PURPOSE:] Main program of synthetic observation generator
+! Comment by satoki: Pseudo-observation generator from the nature run?
 !
 ! [HISTORY:]
 !   November 2014  Guo-Yuan Lien     Created

@@ -206,6 +206,120 @@ elif [ "$MPI_TYPE" = 'K' ]; then
       echo "        Exit code: $res" >&2
       exit $res
     fi
+  elif [ "$PRESET" = 'FX1000' ]; then
+    mpiexec -n $NNP -of-proc $STDOUT $PROG $CONF '' $ARGS
+    res=$?
+    if ((res != 0)); then
+      echo "[Error] mpiexec -n $NNP -of-proc $STDOUT $PROG $CONF '' $ARGS" >&2
+      echo "        Exit code: $res" >&2
+      exit $res
+    fi
+  else
+    mpiexec -n $NNP -vcoordfile "${NODEFILE_DIR}/${NODEFILE}" -of-proc $STDOUT $PROG $CONF '' $ARGS
+    res=$?
+    if ((res != 0)); then 
+      echo "[Error] mpiexec -n $NNP -vcoordfile \"${NODEFILE_DIR}/${NODEFILE}\" -of-proc $STDOUT $PROG $CONF '' $ARGS" >&2
+      echo "        Exit code: $res" >&2
+      exit $res
+    fi
+  fi
+
+fi
+
+#-------------------------------------------------------------------------------
+}
+
+#===============================================================================
+
+mpirunfmod () {  # by satoki
+#-------------------------------------------------------------------------------
+# Submit a MPI job according to nodefile
+#
+# Usage: mpirunfmod NODEFILE PROG TOTALNP [ARGS]
+#
+#   NODEFILE  Name of nodefile (omit the directory $NODEFILE_DIR)
+#   PROG      Program
+#   ARGS      Arguments passed into the program
+#
+# Other input variables:
+#   $NODEFILE_DIR  Directory of nodefiles
+#-------------------------------------------------------------------------------
+
+if (($# < 3)); then
+  echo "[Error] $FUNCNAME: Insufficient arguments." >&2
+  exit 1
+fi
+
+local NODEFILE="$1"; shift
+local PROG="$1"; shift
+local TOTALNP="$1"; shift
+local CONF="$1"; shift
+local STDOUT="$1"; shift
+local ARGS="$@"
+
+progbase=$(basename $PROG)
+progdir=$(dirname $PROG)
+
+#-------------------------------------------------------------------------------
+
+if [ "$MPI_TYPE" = 'sgimpt' ]; then
+
+  local HOSTLIST=$(cat ${NODEFILE_DIR}/${NODEFILE})
+  HOSTLIST=$(echo $HOSTLIST | sed 's/  */,/g')
+
+  $MPIRUN $HOSTLIST 1 $PROG $CONF $STDOUT $ARGS
+#  $MPIRUN $HOSTLIST 1 omplace -nt ${THREADS} $PROG $CONF $STDOUT $ARGS
+  res=$?
+  if ((res != 0)); then
+    echo "[Error] $MPIRUN $HOSTLIST 1 $PROG $CONF $STDOUT $ARGS" >&2
+    echo "        Exit code: $res" >&2
+    exit $res
+  fi
+
+elif [ "$MPI_TYPE" = 'openmpi' ]; then
+
+  NNP=$(cat ${NODEFILE_DIR}/${NODEFILE} | wc -l)
+
+  $MPIRUN -np $NNP -hostfile ${NODEFILE_DIR}/${NODEFILE} $PROG $CONF $STDOUT $ARGS
+  res=$?
+  if ((res != 0)); then
+    echo "[Error] $MPIRUN -np $NNP -hostfile ${NODEFILE_DIR}/${NODEFILE} $PROG $CONF $STDOUT $ARGS" >&2
+    echo "        Exit code: $res" >&2
+    exit $res
+  fi
+
+elif [ "$MPI_TYPE" = 'impi' ]; then
+
+  NNP=$(cat ${NODEFILE_DIR}/${NODEFILE} | wc -l)
+
+  $MPIRUN -n $NNP -machinefile ${NODEFILE_DIR}/${NODEFILE} $PROG $CONF $STDOUT $ARGS
+  res=$?
+  if ((res != 0)); then
+    echo "[Error] $MPIRUN -n $NNP -machinefile ${NODEFILE_DIR}/${NODEFILE} $PROG $CONF $STDOUT $ARGS" >&2
+    echo "        Exit code: $res" >&2
+    exit $res
+  fi
+
+elif [ "$MPI_TYPE" = 'K' ]; then
+
+  NNP=$(cat ${NODEFILE_DIR}/${NODEFILE} | wc -l)
+
+  if [ "$PRESET" = 'K_rankdir' ]; then
+    mpiexec -n $NNP -of-proc $STDOUT $PROG $CONF '' $ARGS
+    res=$?
+    if ((res != 0)); then
+      echo "[Error] mpiexec -n $NNP -of-proc $STDOUT $PROG $CONF '' $ARGS" >&2
+      echo "        Exit code: $res" >&2
+      exit $res
+    fi
+  elif [ "$PRESET" = 'FX1000' ]; then
+    mpiexec -n $TOTALNP -of-proc $STDOUT $PROG $CONF '' $ARGS
+    res=$?
+    if ((res != 0)); then
+      echo "[Error] mpiexec -n $TOTALNP -of-proc $STDOUT $PROG $CONF '' $ARGS" >&2
+      echo "        Exit code: $res" >&2
+      exit $res
+    fi
   else
     mpiexec -n $NNP -vcoordfile "${NODEFILE_DIR}/${NODEFILE}" -of-proc $STDOUT $PROG $CONF '' $ARGS
     res=$?
