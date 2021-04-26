@@ -73,13 +73,13 @@ PROGRAM obsope
   else
     call set_mem_node_proc(MEMBER+1)
   end if
-  call set_scalelib('OBSOPE')
+  call set_scalelib('OBSOPE')  ! (satoki): Reading namelist for 'OBSOPE'
 
   if (myrank_use) then
 
-    call set_common_scale
-    call set_common_mpi_scale
-    call set_common_obs_scale
+    call set_common_scale  ! (satoki): setting model parameters (ex., grid number)
+    call set_common_mpi_scale  ! (satoki): setting model coordinate
+    call set_common_obs_scale  ! (satoki): setting radar parameters
 
     call mpi_timer('INITIALIZE', 1, barrier=MPI_COMM_a)
 
@@ -88,7 +88,7 @@ PROGRAM obsope
 !-----------------------------------------------------------------------
 
     allocate(obs(OBS_IN_NUM))
-    call read_obs_all_mpi(obs)
+    call read_obs_all_mpi(obs)  ! (satoki): reading observation location and broadcasting
 
     call mpi_timer('READ_OBS', 1, barrier=MPI_COMM_a)
 
@@ -96,7 +96,7 @@ PROGRAM obsope
 ! Observation operator
 !-----------------------------------------------------------------------
 
-    call obsope_cal()
+    call obsope_cal()  ! (satoki): calculating observation operator (no option)
 
     call mpi_timer('OBS_OPERATOR', 1, barrier=MPI_COMM_a)
 

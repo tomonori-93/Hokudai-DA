@@ -136,6 +136,12 @@ SUBROUTINE letkf_core(ne,nobs,nobsl,hdxb,rdiag,rloc,dep,parm_infl,trans,transm,p
 !  END DO
 !-----------------------------------------------------------------------
 !  hdxb^T Rinv hdxb + (m-1) I / rho (covariance inflation)
+!  (comment by satoki): (1+delta) * dx^f -> dx^f'
+!                       (Hdx^f')^T R_inv Hdx^f' + (m-1) I
+!                       -> (1+delta)^2 (Hdx^f)^T R_inv Hdx^f + (m-1) I
+!                       coe = (1+delta)^2
+!                       -> coe [(Hdx^f)^T R_inv Hdx^f + (m-1) I / coe]
+!                       = U D' U^T = U (coe * D) U^T (-> next)
 !-----------------------------------------------------------------------
   rho = 1.0d0 / parm_infl
   DO i=1,ne
@@ -143,6 +149,13 @@ SUBROUTINE letkf_core(ne,nobs,nobsl,hdxb,rdiag,rloc,dep,parm_infl,trans,transm,p
   END DO
 !-----------------------------------------------------------------------
 !  eigenvalues and eigenvectors of [ hdxb^T Rinv hdxb + (m-1) I ]
+!  (comment by satoki): D = eig[(Hdx^f)^T R_inv Hdx^f + (m-1) I / coe]
+!                       eival = D, eivec = U,
+!                       T' = sqrt(m-1) * ( U * D'^{-1/2} * U^T )
+!                          = sqrt(coe*(m-1)) * ( U * D^{-1/2} * U^T )
+!                          = sqrt(coe) * T
+!                       -> dx^a = T' dx^f = T (sqrt(coe) * dx^f)
+!                          (i.e., dx^f modified by multiplicative inflation)
 !-----------------------------------------------------------------------
   CALL mtx_eigen(1,ne,work1,eival,eivec,i)
 !-----------------------------------------------------------------------

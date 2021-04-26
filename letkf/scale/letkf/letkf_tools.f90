@@ -126,6 +126,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
 !!  END IF
   !
   ! Variable localization
+  ! (comment by satoki): give localization weight from namelist (default = 1.0). 
   !
   var_local(:,1) = VAR_LOCAL_UV(:)
   var_local(:,2) = VAR_LOCAL_T(:)
@@ -203,6 +204,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
   end do
   !
   ! FCST PERTURBATIONS
+  ! (comment by satoki): calculate dx (= gues{3d,2d})
   !
 !  .... this has been done by write_ensmean in letkf.f90
 !  CALL ensmean_grd(MEMBER,nens,nij1,gues3d,gues2d,mean3d,mean2d)
@@ -233,6 +235,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
 
   !
   ! multiplicative inflation
+  ! (comment by satoki): dx^f <- INFL_MUL * dx^f
   !
   IF(INFL_MUL > 0.0d0) THEN  ! fixed multiplicative inflation parameter
     work3d = INFL_MUL
@@ -323,6 +326,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
 
       ! weight parameter based on grid locations (not for covariance inflation purpose)
       ! if the weight is zero, no analysis update is needed
+      ! (comment by satoki): default = 1.0, beta = 0.0 for assimilation of only radar 
       call relax_beta(rig1(ij),rjg1(ij),hgt1(ij,ilev),beta)
 
       if (LOG_LEVEL >= 3) then
@@ -368,6 +372,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
         n2nc = var_local_n2nc(n)
         n2n = var_local_n2n(n)
 
+        ! (comment by satoki): Q_UPDATE_TOP == water vapor and hydrometeors are updated only below this pressure level (Pa) according to common_nml.f90
         if (gues3d(ij,ilev,mmean,iv3d_p) < Q_UPDATE_TOP .and. n >= iv3d_q .and. n <= iv3d_qg) then !GYL - Upper bound of Q update levels
           do m = 1, MEMBER                                                             !GYL
             anal3d(ij,ilev,m,n) = gues3d(ij,ilev,mmean,n) + gues3d(ij,ilev,m,n)        !GYL
@@ -406,6 +411,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
           end if
         ELSE
           ! compute weights with localized observations
+          ! (comment by satoki): perform localization for observation
           if (DET_RUN) then                                                            !GYL
             CALL obs_local(rig1(ij),rjg1(ij),gues3d(ij,ilev,mmean,iv3d_p),hgt1(ij,ilev),n, & !GYL
                            hdxf,rdiag,rloc,dep,nobsl,depd=depd,nobsl_t=nobsl_t,cutd_t=cutd_t,srch_q0=search_q0(:,n,ij)) !GYL
@@ -455,8 +461,13 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
 
         ! relaxation via LETKF weight
         IF(RELAX_ALPHA /= 0.0d0) THEN                                                  !GYL - RTPP method (Zhang et al. 2004)
+          ! (comment by satoki): T <- (1-alpha)*T + alpha*(infl_parm)
+          !                      infl_parm: default = 1.0, changeable from external file
           CALL weight_RTPP(trans(:,:,n2nc),parm,transrlx)                              !GYL
         ELSE IF(RELAX_ALPHA_SPREAD /= 0.0d0) THEN                                      !GYL - RTPS method (Whitaker and Hamill 2012)
+          ! (comment by satoki): T <- c*T, 
+          !                      c = alpha*sqrt(sum(xb^2)*(infl_parm)/(sigma(a)^2*(m-1))) - alpha + 1
+          !                      infl_parm: default = 1.0, changeable from external file
           IF(RELAX_SPREAD_OUT) THEN                                                    !GYL
             CALL weight_RTPS(trans(:,:,n2nc),pa(:,:,n2nc),gues3d(ij,ilev,:,n), &       !GYL
                              parm,transrlx,work3da(ij,ilev,n))                         !GYL
@@ -477,6 +488,8 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
         END DO                                                                         !GYL
 
         ! analysis update of members
+        ! (comment by satoki): anal3d = X^a, gues3d(mmean) = mean(X^f), 
+        !                      transrlx = F
         DO m=1,MEMBER
           anal3d(ij,ilev,m,n) = gues3d(ij,ilev,mmean,n)                                !GYL
           DO k=1,MEMBER
@@ -800,6 +813,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
   IF (allocated(work2dg)) deallocate (work2dg)
   !
   ! Additive inflation
+  ! (comment by satoki): dx^a <- dx^a + alpha * A
   !
   IF(INFL_ADD > 0.0d0) THEN
     call mpi_timer('', 2, barrier=MPI_COMM_e)
@@ -1847,6 +1861,7 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   end if
   !
   ! Calculate normalized vertical distances
+  ! (comment by satoki): "vert_loc_ctype" from module letkf_obs
   !
   if (vert_loc_ctype(ic) == 0.0d0) then
     nd_v = 0.0d0                                                            ! no vertical localization
@@ -1967,6 +1982,15 @@ end subroutine weight_RTPP
 
 !-------------------------------------------------------------------------------
 ! Relaxation via LETKF weight - RTPS method
+! (comment by satoki): pa = [ hdxb^T Rinv hdxb + (m-1) I ]^{-1} = U D^{-1} U^T
+!                      dx^a = T dx^f, 
+!                      dx^a (dx^a)^T = dx^f (T T^T) (dx^f)^T
+!                                    = (m-1) * dx^f (U D^{-1} D^T) (dx^f)^T
+!                                    = (m-1) * dx^f (pa) (dx^f)^T
+!                      var_g = dx^f (dx^f)^T = sigma(g)^2
+!                      var_a = dx^f (pa) (dx^f)^T = dx^a (dx^a)^T / (m-1) = sigma(a)^2
+!                      infl_out = alpha * sqrt[(sigma(g)^2/sigma(a)^2)*infl]
+!                                 - alpha + 1
 !-------------------------------------------------------------------------------
 subroutine weight_RTPS(w, pa, xb, infl, wrlx, infl_out)
   implicit none

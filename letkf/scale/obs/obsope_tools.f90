@@ -295,6 +295,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
             obidx_bufs(bsnext(islot_domain_out, 0)) = n
           else
             islot = ceiling(obs(iof)%dif(n) / SLOT_TINTERVAL - 0.5d0) + SLOT_BASE
+write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
             if (islot < SLOT_START .or. islot > SLOT_END) then
               islot = islot_time_out
             end if

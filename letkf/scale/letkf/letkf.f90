@@ -130,6 +130,9 @@ PROGRAM letkf
     !
     ! Compute observation operator, return the results in obsda
     ! with additional space for externally processed observations
+    ! (comment by satoki): H(x) is set in "obsda"
+    !                      obsda is a save variable in module letkt_obs,
+    !                      and y is set in "obs"
     !
     call obsope_cal(obsda_return=obsda, nobs_extern=nobs_extern)
 
@@ -137,6 +140,10 @@ PROGRAM letkf
 
 !-----------------------------------------------------------------------
 ! Process observation data
+! (comment by satoki): QC and calculate Hdx and y-H(x)
+!                             y-H(x): obsda_sort%val(n)
+!                             Hdx: obsda_sort%ensval(i,n),
+!                      and share obsda_sort among all processes
 !-----------------------------------------------------------------------
 
     call set_letkf_obs
@@ -149,6 +156,7 @@ PROGRAM letkf
 
     !
     ! LETKF GRID setup
+    ! (comment by satoki): construct vertical grid
     !
     call set_common_mpi_grid
 
@@ -160,7 +168,7 @@ PROGRAM letkf
     call mpi_timer('SET_GRID', 1, barrier=MPI_COMM_a)
 
     !
-    ! READ GUES
+    ! READ GUES  ! from restart files comment by satoki
     !
     call read_ens_mpi(gues3d, gues2d)
 
@@ -192,6 +200,7 @@ PROGRAM letkf
 
     !
     ! LETKF
+    ! (comment by satoki): main routine for LETKF analysis
     !
     call das_letkf(gues3d,gues2d,anal3d,anal2d)
 
