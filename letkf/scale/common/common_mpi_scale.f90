@@ -380,6 +380,7 @@ SUBROUTINE set_mem_node_proc(mem)
   end if
   nnodes = nprocs / PPN
 
+  ! (satoki): PRC_DOMAINS = number of total process in each domain
   nprocs_m = sum(PRC_DOMAINS(1:NUM_DOMAIN))
 
   if (LOG_LEVEL >= 1) then
@@ -390,9 +391,9 @@ SUBROUTINE set_mem_node_proc(mem)
   end if
 
   if (MEM_NODES == 0) then
-    MEM_NODES = (nprocs_m-1) / PPN + 1
+    MEM_NODES = (nprocs_m-1) / PPN + 1  ! (satoki): node number per member
   end if
-  IF(MEM_NODES > 1) THEN
+  IF(MEM_NODES > 1) THEN  ! (satoki): n_mem = total member (all domains), n_mempn = member per node (all domains)
     n_mem = nnodes / MEM_NODES
     n_mempn = 1
   ELSE
@@ -1741,6 +1742,7 @@ end subroutine write_enssprd
 
 !-------------------------------------------------------------------------------
 ! Read all observation data from files of various formats
+! (satoki): and broadcast the information
 !-------------------------------------------------------------------------------
 subroutine read_obs_all_mpi(obs)
   implicit none

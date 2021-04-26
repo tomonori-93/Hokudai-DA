@@ -2085,6 +2085,7 @@ SUBROUTINE obs_da_value_deallocate(obsda)
 END SUBROUTINE obs_da_value_deallocate
 !-----------------------------------------------------------------------
 ! Basic modules for observation input
+! (satoki): Get number of observation (= array number in one ASCII file)
 !-----------------------------------------------------------------------
 SUBROUTINE get_nobs(cfile,nrec,nn)
   IMPLICIT NONE
@@ -2163,6 +2164,7 @@ SUBROUTINE get_nobs(cfile,nrec,nn)
   RETURN
 END SUBROUTINE get_nobs
 
+!-- (satoki): Read observation about prepbuf and tc_vital (binary data)
 SUBROUTINE read_obs(cfile,obs)
   use scale_mapproj, only: &
       MPRJ_lonlat2xy
@@ -2177,6 +2179,7 @@ SUBROUTINE read_obs(cfile,obs)
   OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='sequential')
   DO n=1,obs%nobs
     READ(iunit) wk
+write(*,*) "obs val check", n, wk
     SELECT CASE(NINT(wk(1)))
     CASE(id_u_obs)
       wk(4) = wk(4) * 100.0 ! hPa -> Pa
@@ -2611,6 +2614,7 @@ SUBROUTINE write_obs_radar(cfile,obs,append,missing)
   RETURN
 END SUBROUTINE write_obs_radar
 
+!-- Read observation data (comment by satoki)
 subroutine read_obs_all(obs)
   implicit none
 
@@ -2666,6 +2670,7 @@ subroutine read_obs_all(obs)
   return
 end subroutine read_obs_all
 
+!-- Write observation data (comment by satoki)
 subroutine write_obs_all(obs, missing, file_suffix)
   implicit none
 
@@ -3142,7 +3147,7 @@ END SUBROUTINE write_obs_H08
 SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,lon,lat,v3d,v2d,yobs,plev_obs,qc,stggrd,yobs_H08_clr)
   use scale_mapproj, only: &
       MPRJ_rotcoef
-  use scale_H08_fwd
+!  use scale_H08_fwd
   use scale_grid_index, only: &
     KHALO
 
@@ -3206,11 +3211,11 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,lon,lat,v3d,v2d,yobs,plev_obs,qc,stggrd,
 ! -- make profile arrays for RTTOV --
   DO np = 1, nprof ! -- make profiles
 
-    CALL itpl_2d(v2d(:,:,iv2dd_skint),ri(np),rj(np),tsfc1d(np)) ! T2 is better??
+!    CALL itpl_2d(v2d(:,:,iv2dd_skint),ri(np),rj(np),tsfc1d(np)) ! T2 is better??
 !    CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri(np),rj(np),tsfc1d(np))
     CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri(np),rj(np),qsfc1d(np))
     CALL itpl_2d(v2d(:,:,iv2dd_topo),ri(np),rj(np),topo1d(np))
-    CALL itpl_2d(v2d(:,:,iv2dd_lsmask),ri(np),rj(np),lsmask1d(np))
+!    CALL itpl_2d(v2d(:,:,iv2dd_lsmask),ri(np),rj(np),lsmask1d(np))
     CALL itpl_2d(v2d(:,:,iv2dd_ps),ri(np),rj(np),psfc1d(np))
 !    call prsadj(yobs,rk-topo,t,q)
 !    if (abs(rk-topo) > PS_ADJUST_THRES) then
@@ -3250,26 +3255,26 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,lon,lat,v3d,v2d,yobs,plev_obs,qc,stggrd,
   slev = 1 + KHALO
   elev = nlevh - KHALO
 
-  CALL SCALE_RTTOV_fwd(nch, & ! num of channels
-                       nlev,& ! num of levels
-                       nprof,& ! num of profs
-                       prs2d(elev:slev:-1,1:nprof),& ! (Pa)
-                       tk2d(elev:slev:-1,1:nprof),& ! (K)
-                       qv2d(elev:slev:-1,1:nprof),& ! (kg/kg)
-                       qliq2d(elev:slev:-1,1:nprof),& ! (kg/kg)
-                       qice2d(elev:slev:-1,1:nprof),& ! (kg/kg)
-                       tsfc1d(1:nprof),& ! (K)
-                       qsfc1d(1:nprof),& ! (kg/kg)
-                       psfc1d(1:nprof),& ! (Pa)
-                       usfc1d(1:nprof),& ! (m/s)
-                       vsfc1d(1:nprof),& ! (m/s)
-                       topo1d(1:nprof),& ! (m)
-                       lon1d(1:nprof),& ! (deg)
-                       lat1d(1:nprof),& ! (deg)
-                       lsmask1d(1:nprof),& ! (0-1)
-                       btall_out(1:nch,1:nprof),& ! (K)
-                       btclr_out(1:nch,1:nprof),& ! (K)
-                       trans_out(nlev:1:-1,1:nch,1:nprof))
+!  CALL SCALE_RTTOV_fwd(nch, & ! num of channels
+!                       nlev,& ! num of levels
+!                       nprof,& ! num of profs
+!                       prs2d(elev:slev:-1,1:nprof),& ! (Pa)
+!                       tk2d(elev:slev:-1,1:nprof),& ! (K)
+!                       qv2d(elev:slev:-1,1:nprof),& ! (kg/kg)
+!                       qliq2d(elev:slev:-1,1:nprof),& ! (kg/kg)
+!                       qice2d(elev:slev:-1,1:nprof),& ! (kg/kg)
+!                       tsfc1d(1:nprof),& ! (K)
+!                       qsfc1d(1:nprof),& ! (kg/kg)
+!                       psfc1d(1:nprof),& ! (Pa)
+!                       usfc1d(1:nprof),& ! (m/s)
+!                       vsfc1d(1:nprof),& ! (m/s)
+!                       topo1d(1:nprof),& ! (m)
+!                       lon1d(1:nprof),& ! (deg)
+!                       lat1d(1:nprof),& ! (deg)
+!                       lsmask1d(1:nprof),& ! (0-1)
+!                       btall_out(1:nch,1:nprof),& ! (K)
+!                       btclr_out(1:nch,1:nprof),& ! (K)
+!                       trans_out(nlev:1:-1,1:nch,1:nprof))
 !
 ! -- Compute max weight level using trans_out 
 ! -- (Transmittance from each user pressure level to Top Of the Atmosphere)
