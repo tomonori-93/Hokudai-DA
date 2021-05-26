@@ -628,7 +628,72 @@ SUBROUTINE prsadj(p,dz,t,q)
   RETURN
 END SUBROUTINE prsadj
 
+!-----------------------------------------------------------------------
+! Calculate vertical average of a 3d variable (Author: Satoki Tsujino)
+!-----------------------------------------------------------------------
+SUBROUTINE vert_ave( ix, jy, kz, z1, z2, zval(kz,ix,jy), ival(kz,ix,jy), oval(ix,jy) )
+  IMPLICIT NONE
+  INTEGER, INTENT(in) :: ix, jy, kz ! Grid numbers in x, y, and z, respectively
+  REAL(r_size), INTENT(in) :: z1    ! Bottom height for the vertical average [m]
+  REAL(r_size), INTENT(in) :: z2    ! Top height for the vertical average [m]
+  REAL(r_size), INTENT(in) :: zval(kz,ix,jy)  ! 3d height in model grid
+  REAL(r_size), INTENT(in) :: ival(kz,ix,jy)  ! 3d variable for the vertical average
+  REAL(r_size), INTENT(out) :: oval(ix,jy)    ! the vertically averaged 2d variable
+  REAL(r_size) :: icounter
+  INTEGER :: ii, jj, kk
 
+  do jj=1,jy
+  do ii=1,ix
+     oval(ii,jj)=0.0
+     icounter=0.0
+     do kk=1,kz
+        if(z1>=zval(kk,ii,jj).and.z2<=zval(kk,ii,jj))then
+           oval(ii,jj)=oval(ii,jj)+ival(kk,ii,jj)
+           icounter=icounter+1.0
+        end if
+     end do
+     if(icounter>0.0)then
+        oval(ii,jj)=oval(ii,jj)/icounter
+     end if
+  end do
+  end do
+
+END SUBROUTINE vert_ave
+
+!-----------------------------------------------------------------------
+! Convert Cartesian U and V to tangential V (Author: Satoki Tsujino)
+!-----------------------------------------------------------------------
+SUBROUTINE uv2vt( ix, jy, x, y, xc, yc, u, v, vt )
+  IMPLICIT NONE
+  INTEGER, INTENT(in) :: ix, jy ! Grid numbers in x and y, respectively
+  REAL(r_size), INTENT(in) :: x(ix)  ! X coordinate [m]
+  REAL(r_size), INTENT(in) :: y(jy)  ! Y coordinate [m]
+  REAL(r_size), INTENT(in) :: xc     ! TC center on the X coordinate [m]
+  REAL(r_size), INTENT(in) :: yc     ! TC center on the Y coordinate [m]
+  REAL(r_size), INTENT(in) :: u(ix,jy)    ! X component of 2d horizontal wind [m/s]
+  REAL(r_size), INTENT(in) :: v(ix,jy)    ! Y component of 2d horizontal wind [m/s]
+  REAL(r_size), INTENT(out) :: vt(ix,jy)  ! Tangential wind [m/2]
+  INTEGER :: ii, jj
+  REAL(r_size) :: rr, xdis, ydis, r_inv
+
+  vt=0.0
+
+  do jj=1,jy
+  do ii=1,ix
+     xdis=x(ii)-xc
+     ydis=y(jj)-yc
+     rr=sqrt(xdis*xdis+ydis*ydis)
+     if(rr>0.0)then
+        ! |r| Vt = r x v (r: pointing vector (x,y), v: velocity vector (u,v))a
+        r_inv=1.0/rr
+        xdis=xdis*r_inv
+        ydis=ydis*r_inv
+        vt(ii,jj)=xdis*v(ii,jj)-ydis*u(ii,jj)
+     end if
+  end do
+  end do
+
+END SUBROUTINE uv2vt
 
 !-----------------------------------------------------------------------
 ! Compute radar reflectivity and radial wind.
@@ -3142,9 +3207,163 @@ END SUBROUTINE write_obs_H08
 !-----------------------------------------------------------------------
 !   Himawari-8 VT obs subroutines by Satoki Tsujino (02/23/2021)
 !   Under construction
-!-----------------------------------------------------------------------
+!   Procedures:
+!   1. Make vertical average of U and V over the cloud-cover levels
+!      The cloud-cover levels are estimated by the observation (Tbb)
+!   2. Determine the storm center based on the SLP
+!      (Maybe the first guess for the storm center would be needed)
+!   3. Calculate tangential wind component based on the vertical average
+!      of U and V
+!   4. Make azimuthal average (Vtb) of the tangential wind at the radius
 !
-SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,lon,lat,v3d,v2d,yobs,plev_obs,qc,stggrd,yobs_H08_clr)
+!  [NOTE] stggrd: grid type of u and v
+!         0: non-staggered grid
+!         1: staggered grid
+!-----------------------------------------------------------------------
+SUBROUTINE Trans_XtoY_H08VT(nobs_rad,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,stggrd)
+  use scale_mapproj, only: &
+      MPRJ_rotcoef
+  use stpk_lib, only: &
+      DC_Braun, tangent_mean_scal
+  IMPLICIT NONE
+  INTEGER,INTENT(in) :: nobs_rad  ! observation number for Vt observation
+  REAL(r_size),INTENT(IN) :: ri,rj  ! the first guess location for the storm center
+  REAL(r_size),INTENT(IN) :: rk1,rk2  ! the levels (grid numbers) for the vertical average
+  REAL(r_size),INTENT(IN) :: lon,lat  ! the first guess location for the storm center
+  REAL(r_size),INTENT(IN) :: rad(nobs_rad)  ! the radius from the storm center in azimuthal average
+  REAL(r_size),INTENT(IN) :: v3d(nlevh,nlonh,nlath,nv3dd)  ! 3d model variables
+  REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)  ! 2d model variables
+  REAL(r_size),INTENT(OUT) :: yobs(nobs_rad)  ! H(x)
+  INTEGER,INTENT(OUT) :: qc(nobs_rad)
+  INTEGER,INTENT(IN),OPTIONAL :: stggrd
+  INTEGER :: ii, jj
+  REAL(r_size),ALLOCATABLE :: theta(:)
+  REAL(r_size) :: u(nlonh,nlath),v(nlonh,nlath)
+  REAL(r_size) :: slp2d(nglon,nglat)  ! 2d variable in the global domain
+  REAL(r_size) :: vt,t,q,topo
+  REAL(RP) :: rotc(2)
+
+  INTEGER :: stggrd_ = 1
+  if (present(stggrd)) stggrd_ = stggrd
+
+  yobs = undef
+  qc = iqc_good
+
+!-- 1. Make vertical average of U and V over the cloud-cover levels
+!      The cloud-cover levels are estimated by the observation (Tbb)
+!      (In each MPI process)
+
+  call vert_ave( rk1, rk2, v3d(:,:,:,iv3dd_z), v3d(:,:,:,iv3dd_u), u )
+  call vert_ave( rk1, rk2, v3d(:,:,:,iv3dd_z), v3d(:,:,:,iv3dd_v), v )
+!SUBROUTINE vert_ave( ix, jy, kz, z1, z2, zval(kz,ix,jy), ival(kz,ix,jy), oval(ix,jy) )
+
+!-- 2.1 convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
+
+  do jj=1,nlath
+     do ii=1,nlonh
+        CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
+        CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
+        CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
+        CALL itpl_2d(v2d(:,:,iv2dd_ps),ri,rj,slp2d(ii,jj))
+        CALL prsadj(slp2d(ii,jj),-1.0d0*topo,t,q)
+     end do
+  end do
+
+!-- 2.2 Gather all slp in all subdomains
+
+  call MPI_All_Gather()
+
+!-- From here, calculation is only MPI root rank
+!-- 2.3 Determine the storm center based on the SLP
+
+  call DC_Braun_f( x, y, (/xc_fg,yc_fg/), slp,  &
+  &                search_dis, var_dis, (/xc,yc/), stdopt=.false. )  ! From stpk_lib
+
+!-- 3. Calculate tangential wind component based on the vertical average
+!      of U and V
+
+  call uv2vt( x, y, xc, yc, u, v, vt )
+!SUBROUTINE uv2vt( ix, jy, x, y, xc, yc, u, v, vt )
+
+!-- 4. Make azimuthal average (Vtb) of the tangential wind at the radius
+
+  do jj=1,nobs_rad
+     if(rad(jj)>0.0)then
+        ntheta=int(360.0*deg2rad*rad(jj)/DX)
+        allocate(theta(ntheta))
+        theta=(/((real(ii-1)/),ii=1,ntheta)/)
+        call tangent_mean_scal( x, y, xc, yc, vt,  &
+  &                             rad(jj:jj), theta, yobs(jj), axis='xy' )  ! From stpk_lib
+        deallocate(theta)
+     else
+        yobs(jj)=0.0
+     end if
+     qc=iqc_good  ! No check
+  end do
+
+!-- 5. Broadcast yobs in all MPI processes
+
+  call MPI_Broadcast()
+
+!-- Finish (not need below)
+
+  SELECT CASE (elm)
+  CASE(id_u_obs,id_v_obs)  ! U,V
+    if (stggrd_ == 1) then  ! change u and v from vector points to scalar points
+      CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri-0.5_r_size,rj,u)  !###### should modity itpl_3d to prevent '1.0' problem....??
+      CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj-0.5_r_size,v)  !######
+    else
+      CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri,rj,u)
+      CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj,v)
+    end if
+! Calculation on Cartesian coordinates
+!(no need)    call MPRJ_rotcoef(rotc,lon*deg2rad,lat*deg2rad)
+!(no need)    if (elm == id_u_obs) then
+!(no need)      yobs = u * rotc(1) - v * rotc(2)
+!(no need)    else
+!(no need)      yobs = u * rotc(2) + v * rotc(1)
+!(no need)    end if
+  CASE(id_t_obs)  ! T
+    CALL itpl_3d(v3d(:,:,:,iv3dd_t),rk,ri,rj,yobs)
+  CASE(id_tv_obs)  ! Tv
+    CALL itpl_3d(v3d(:,:,:,iv3dd_t),rk,ri,rj,yobs)
+    CALL itpl_3d(v3d(:,:,:,iv3dd_q),rk,ri,rj,q)
+    yobs = yobs * (1.0d0 + fvirt * q)
+  CASE(id_q_obs)  ! Q
+    CALL itpl_3d(v3d(:,:,:,iv3dd_q),rk,ri,rj,yobs)
+  CASE(id_ps_obs) ! PS
+    CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
+    CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
+    CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
+    CALL itpl_2d(v2d(:,:,iv2dd_ps),ri,rj,yobs)
+    call prsadj(yobs,rk-topo,t,q)
+    if (abs(rk-topo) > PS_ADJUST_THRES) then
+      if (LOG_LEVEL >= 2) then
+        write (6,'(A,F6.1)') '[Warning] PS observation height adjustment exceeds the threshold. dz=', abs(rk-topo)
+      end if
+      qc = iqc_ps_ter
+    end if
+!  CASE(id_rain_obs) ! RAIN                        ############# (not finished)
+!    CALL itpl_2d(v2d(:,:,iv2dd_rain),ri,rj,yobs) !#############
+  CASE(id_rh_obs) ! RH
+    CALL itpl_3d(v3d(:,:,:,iv3dd_rh),rk,ri,rj,yobs)
+!  CASE(id_tclon_obs)
+!    CALL tctrk(v2d(:,:,iv2d_ps),v2d(:,:,iv2d_t2),ri,rj,dummy)
+!    yobs = dummy(1)
+!  CASE(id_tclat_obs)
+!    CALL tctrk(v2d(:,:,iv2d_ps),v2d(:,:,iv2d_t2),ri,rj,dummy)
+!    yobs = dummy(2)
+!  CASE(id_tcmip_obs)
+!    CALL tctrk(v2d(:,:,iv2d_ps),v2d(:,:,iv2d_t2),ri,rj,dummy)
+!    yobs = dummy(3)
+  CASE DEFAULT
+    qc = iqc_otype
+  END SELECT
+
+!  RETURN
+!END SUBROUTINE Trans_XtoY
+!!-----------------------------------------------------------------------
+!SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,lon,lat,v3d,v2d,yobs,plev_obs,qc,stggrd,yobs_H08_clr)
   use scale_mapproj, only: &
       MPRJ_rotcoef
 !  use scale_H08_fwd
