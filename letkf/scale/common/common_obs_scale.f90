@@ -42,7 +42,7 @@ MODULE common_obs_scale
   IMPLICIT NONE
   PUBLIC
 
-  INTEGER,PARAMETER :: nid_obs_varlocal=10 !H08
+  INTEGER,PARAMETER :: nid_obs_varlocal=10 !H08 and H08vt
 !ORG(satoki)  INTEGER,PARAMETER :: nid_obs_varlocal=9 !H08
 !
 ! conventional observations
@@ -115,6 +115,10 @@ MODULE common_obs_scale
     REAL(r_size),ALLOCATABLE :: ri(:)  ! obs x-poing in global domain (Comment by satoki)
     REAL(r_size),ALLOCATABLE :: rj(:)  ! obs y-point in global domain (Comment by satoki)
     INTEGER,ALLOCATABLE :: rank(:)  ! MPI rank corresponding to the area containing obs point (Comment by satoki)
+    ! From here for H08vt (added by satoki)
+    REAL(r_size),ALLOCATABLE :: rad(:)  ! radius (m) from TC center for observation (added by satoki)
+    REAL(r_size),ALLOCATABLE :: lev2(:)  ! top height (m) for H08vt (added by satoki)
+    ! To here for H08vt (added by satoki)
   END TYPE obs_info
 
   TYPE obs_da_value
@@ -2047,6 +2051,9 @@ SUBROUTINE obs_info_allocate(obs, extended)
   ALLOCATE( obs%err (obs%nobs) )
   ALLOCATE( obs%typ (obs%nobs) )
   ALLOCATE( obs%dif (obs%nobs) )
+  !-- For H08vt (added by satoki)
+  ALLOCATE( obs%lev2 (obs%nobs) )
+  ALLOCATE( obs%rad (obs%nobs) )
 
   obs%elm = 0
   obs%lon = 0.0d0
@@ -2056,6 +2063,9 @@ SUBROUTINE obs_info_allocate(obs, extended)
   obs%err = 0.0d0
   obs%typ = 0
   obs%dif = 0.0d0
+  !-- For H08vt (added by satoki)
+  obs%lev2 = 0.0d0
+  obs%rad = 0.0d0
 
   if (present(extended)) then
     if (extended) then
@@ -2086,6 +2096,9 @@ SUBROUTINE obs_info_deallocate(obs)
   IF(ALLOCATED(obs%err)) DEALLOCATE(obs%err)
   IF(ALLOCATED(obs%typ)) DEALLOCATE(obs%typ)
   IF(ALLOCATED(obs%dif)) DEALLOCATE(obs%dif)
+  !-- For H08vt (added by satoki)
+  IF(ALLOCATED(obs%lev2)) DEALLOCATE(obs%lev2)
+  IF(ALLOCATED(obs%rad)) DEALLOCATE(obs%rad)
 
   RETURN
 END SUBROUTINE obs_info_deallocate
@@ -2494,7 +2507,7 @@ subroutine write_obs_dep(cfile, nobs, set, idx, qc, omb, oma)
   return
 end subroutine write_obs_dep
 
-SUBROUTINE get_nobs_radar(cfile,nn,radarlon,radarlat,radarz)
+SUBROUTINE get_nprofar(cfile,nn,radarlon,radarlat,radarz)
   IMPLICIT NONE
   CHARACTER(*),INTENT(IN) :: cfile
   INTEGER,INTENT(OUT) :: nn
@@ -2583,7 +2596,7 @@ SUBROUTINE get_nobs_radar(cfile,nn,radarlon,radarlat,radarz)
   END IF
 
   RETURN
-END SUBROUTINE get_nobs_radar
+END SUBROUTINE get_nprofar
 
 SUBROUTINE read_obs_radar(cfile,obs)
   IMPLICIT NONE
@@ -2704,7 +2717,7 @@ subroutine read_obs_all(obs)
     case (obsfmt_prepbufr)
       call get_nobs(trim(OBS_IN_NAME(iof)),8,obs(iof)%nobs)
     case (obsfmt_radar)
-      call get_nobs_radar(trim(OBS_IN_NAME(iof)), obs(iof)%nobs, obs(iof)%meta(1), obs(iof)%meta(2), obs(iof)%meta(3))
+      call get_nprofar(trim(OBS_IN_NAME(iof)), obs(iof)%nobs, obs(iof)%meta(1), obs(iof)%meta(2), obs(iof)%meta(3))
     case (obsfmt_h08)
       call get_nobs_H08(trim(OBS_IN_NAME(iof)),obs(iof)%nobs) ! H08
     case (obsfmt_h08vt)
@@ -2727,8 +2740,8 @@ subroutine read_obs_all(obs)
       call read_obs_radar(trim(OBS_IN_NAME(iof)),obs(iof))
     case (obsfmt_h08)
       call read_obs_H08(trim(OBS_IN_NAME(iof)),obs(iof)) ! H08
-    case (obsfmt_h08vt)
-      write(*,*) "Under construction by satoki"
+    case (obsfmt_h08vt)  ! Add by satoki
+      call read_obs_H08vt(trim(OBS_IN_NAME(iof)),obs(iof)) ! H08vt
     end select
   end do ! [ iof = 1, OBS_IN_NUM ]
 
@@ -2765,8 +2778,8 @@ subroutine write_obs_all(obs, missing, file_suffix)
       call write_obs_radar(trim(filestr),obs(iof),missing=missing_)
     case (obsfmt_h08)
       call write_obs_H08(trim(filestr),obs(iof),missing=missing_) ! H08
-    case (obsfmt_h08vt)
-      write(*,*) "Under construction by satoki"
+    case (obsfmt_h08vt)  ! Added by satoki
+      call write_obs_H08vt(trim(filestr),obs(iof),missing=missing_) ! H08vt
     end select
   end do ! [ iof = 1, OBS_IN_NUM ]
 
@@ -3220,21 +3233,21 @@ END SUBROUTINE write_obs_H08
 !         0: non-staggered grid
 !         1: staggered grid
 !-----------------------------------------------------------------------
-SUBROUTINE Trans_XtoY_H08VT(nobs_rad,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,stggrd)
+SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,stggrd)
   use scale_mapproj, only: &
       MPRJ_rotcoef
   use stpk_lib, only: &
       DC_Braun, tangent_mean_scal
   IMPLICIT NONE
-  INTEGER,INTENT(in) :: nobs_rad  ! observation number for Vt observation
+  INTEGER,INTENT(in) :: nprof  ! observation number for Vt observation
   REAL(r_size),INTENT(IN) :: ri,rj  ! the first guess location for the storm center
   REAL(r_size),INTENT(IN) :: rk1,rk2  ! the levels (grid numbers) for the vertical average
   REAL(r_size),INTENT(IN) :: lon,lat  ! the first guess location for the storm center
-  REAL(r_size),INTENT(IN) :: rad(nobs_rad)  ! the radius from the storm center in azimuthal average
+  REAL(r_size),INTENT(IN) :: rad(nprof)  ! the radius from the storm center in azimuthal average
   REAL(r_size),INTENT(IN) :: v3d(nlevh,nlonh,nlath,nv3dd)  ! 3d model variables
   REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)  ! 2d model variables
-  REAL(r_size),INTENT(OUT) :: yobs(nobs_rad)  ! H(x)
-  INTEGER,INTENT(OUT) :: qc(nobs_rad)
+  REAL(r_size),INTENT(OUT) :: yobs(nprof)  ! H(x)
+  INTEGER,INTENT(OUT) :: qc(nprof)
   INTEGER,INTENT(IN),OPTIONAL :: stggrd
   INTEGER :: ii, jj
   REAL(r_size),ALLOCATABLE :: theta(:)
@@ -3287,7 +3300,7 @@ SUBROUTINE Trans_XtoY_H08VT(nobs_rad,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,s
 
 !-- 4. Make azimuthal average (Vtb) of the tangential wind at the radius
 
-  do jj=1,nobs_rad
+  do jj=1,nprof
      if(rad(jj)>0.0)then
         ntheta=int(360.0*deg2rad*rad(jj)/DX)
         allocate(theta(ntheta))
@@ -3556,5 +3569,164 @@ SUBROUTINE Trans_XtoY_H08VT(nobs_rad,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,s
 
   RETURN
 END SUBROUTINE Trans_XtoY_H08VT
+
+!-----------------------------------------------------------------------
+!   Read observation data by Satoki Honda (05/26/2021)
+!
+!  [observation format of H08Vt in LETKF]
+!   (In files, all variables are stored in single-precision float)
+!
+!  column  description
+!     (1)  variable type (1..nid_obs; see 'id_*_obs' parameters)
+!     (2)  longitude of TC center (degree)
+!     (3)  latitude of TC center (degree)
+!     (4)  radius of the observation (from the TC center) (m)
+!     (5)  bottom height (m) for vertical average
+!     (6)  top height (m) for vertical average
+!     (7)  observation value (m/s)
+!     (8)  observation error (unit same as observation value)
+!     (9)  observation platform type (1..nobtype+1; see 'obtypelist' array)
+!     (10) observation time relative to analysis time (sec)
+!-----------------------------------------------------------------------
+
+!-- Read observation number for H08vt
+SUBROUTINE get_nobs_H08vt(cfile,nn)
+  IMPLICIT NONE
+  CHARACTER(*),INTENT(IN) :: cfile
+  INTEGER,INTENT(OUT) :: nn ! num of all H08vt obs
+  INTEGER :: iprof
+  INTEGER :: iunit
+  LOGICAL :: ex
+  INTEGER :: sz
+
+  nn = 0 
+  iprof = 0
+  iunit=91
+
+  INQUIRE(FILE=cfile,EXIST=ex)
+  IF(ex) THEN
+    OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='sequential')
+    
+!    READ(iunit,IOSTAT=ios)wk
+!    IF(ios /= 0) THEN 
+!      WRITE(6,'(3A)') '[Warning]',cfile,': Reading error -- skipped'
+!      RETURN
+!    END IF
+    
+! get file size by reading through the entire file... too slow for big files
+!-----------------------------
+!    DO
+!      READ(iunit,IOSTAT=ios) wk
+!      IF(ios /= 0) EXIT
+!      iprof = iprof + 1
+!      nn = nn + nch
+!    END DO
+!-----------------------------
+
+! get file size by INQUIRE statement... may not work for some older fortran compilers
+!-----------------------------
+    INQUIRE(UNIT=iunit, SIZE=sz)
+    IF (MOD(sz, r_sngl * (12)) /= 0) THEN
+      WRITE(6,'(3A)') '[Warning]',cfile,': Reading error -- skipped'
+      RETURN
+    END IF
+    iprof = sz / (r_sngl * (12))
+    nn = iprof
+!-----------------------------
+
+    WRITE(6,*)' H08vt FILE ', cfile
+    WRITE(6,'(I10,A)') nn,' OBSERVATIONS INPUT'
+    WRITE(6,'(A12,I10)') '   num of prof:',iprof
+    CLOSE(iunit)
+  ELSE
+    WRITE(6,'(2A)') cfile,' does not exist -- skipped'
+  END IF
+
+  RETURN
+END SUBROUTINE get_nobs_H08vt
+
+!-- Read observation data for H08vt
+SUBROUTINE read_obs_H08vt(cfile,obs)
+  IMPLICIT NONE
+  CHARACTER(*),INTENT(IN) :: cfile
+  TYPE(obs_info),INTENT(INOUT) :: obs
+  REAL(r_sngl) :: wk(10)
+!  REAL(r_sngl) :: tmp
+  INTEGER :: n,iunit
+
+  INTEGER :: nprof, np, ch
+
+  nprof = obs%nobs
+
+  iunit=91
+  OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='sequential')
+
+  DO n=1,nprof
+    READ(iunit) wk
+
+    obs%elm(n) = NINT(wk(1))
+    obs%lon(n) = REAL(wk(2),r_size)
+    obs%lat(n) = REAL(wk(3),r_size)
+    obs%rad(n) = REAL(wk(4),r_size)
+    obs%lev(n) = REAL(wk(5),r_size)
+    obs%lev2(n) = REAL(wk(6),r_size)
+    obs%dat(n) = REAL(wk(7),r_size)
+    obs%err(n) = REAL(wk(8),r_size)
+    obs%typ(n) = NINT(wk(9))
+    obs%dif(n) = REAL(wk(10),r_size)
+
+  END DO
+  CLOSE(iunit)
+
+  RETURN
+END SUBROUTINE read_obs_H08vt
+
+!-- Write observation data for H08vt
+SUBROUTINE write_obs_H08(cfile,obs,append,missing)
+  IMPLICIT NONE
+  CHARACTER(*),INTENT(IN) :: cfile
+  TYPE(obs_info),INTENT(IN) :: obs
+  LOGICAL,INTENT(IN),OPTIONAL :: append
+  LOGICAL,INTENT(IN),OPTIONAL :: missing
+  LOGICAL :: append_
+  LOGICAL :: missing_
+  REAL(r_sngl) :: wk(10)
+  INTEGER :: n,iunit
+  INTEGER :: iprof, ns, ne
+
+  iunit=92
+  append_ = .false.
+  IF(present(append)) append_ = append
+  missing_ = .true.
+  IF(present(missing)) missing_ = missing
+
+  iprof = obs%nobs
+
+  IF(append_) THEN
+    OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='append')
+  ELSE
+    OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='sequential')
+  END IF
+
+  DO n=1,iprof
+
+    wk(1) = REAL(obs%elm(n))
+    wk(2) = REAL(obs%lon(n),r_size)
+    wk(3) = REAL(obs%lat(n),r_size)
+    wk(4) = REAL(obs%rad(n),r_size)
+    wk(5) = REAL(obs%lev(n),r_size)
+    wk(6) = REAL(obs%lev2(n),r_size)
+    wk(7) = REAL(obs%dat(n),r_size)
+    wk(8) = REAL(obs%err(n),r_size)
+    wk(9) = REAL(obs%typ(n))
+    wk(10) = REAL(obs%dif(n),r_size)
+    WRITE(iunit) wk
+
+  ENDDO
+
+  CLOSE(iunit)
+
+  RETURN
+END SUBROUTINE write_obs_H08vt
 
 END MODULE common_obs_scale
