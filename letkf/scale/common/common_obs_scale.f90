@@ -3219,31 +3219,31 @@ END SUBROUTINE write_obs_H08
 !
 !-----------------------------------------------------------------------
 !   Himawari-8 VT obs subroutines by Satoki Tsujino (02/23/2021)
-!   Under construction
+!   [Under construction]
 !   Procedures:
-!   1. Make vertical average of U and V over the cloud-cover levels
-!      The cloud-cover levels are estimated by the observation (Tbb)
-!   2. Determine the storm center based on the SLP
+!   1. Determine the storm center based on the SLP
 !      (Maybe the first guess for the storm center would be needed)
-!   3. Calculate tangential wind component based on the vertical average
-!      of U and V
-!   4. Make azimuthal average (Vtb) of the tangential wind at the radius
+!   2. Make vertical averages (Ub and Vb) of horizontal winds (U and V), and 
+!      calculate tangential wind (Vt) from Ub and Vb over the cloud-cover levels
+!      The cloud-cover levels are estimated by the observation (Tbb)
+!   3. Make azimuthal average (Vtb) of Vt at each radius
 !
 !  [NOTE] stggrd: grid type of u and v
 !         0: non-staggered grid
 !         1: staggered grid
 !-----------------------------------------------------------------------
-SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,stggrd)
+SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
+  &                         rig,rjg,v3d,v2d,yobs,qc,stggrd)
   use scale_mapproj, only: &
       MPRJ_rotcoef
-  use stpk_lib, only: &
-      DC_Braun, tangent_mean_scal
   IMPLICIT NONE
   INTEGER,INTENT(in) :: nprof  ! observation number for Vt observation
-  REAL(r_size),INTENT(IN) :: ri,rj  ! the first guess location for the storm center
+  REAL(r_size),INTENT(IN) :: rig_tcobs,rjg_tcobs  ! the first guess location for the storm center (lon,lat) in global domain
   REAL(r_size),INTENT(IN) :: rk1,rk2  ! the levels (grid numbers) for the vertical average
   REAL(r_size),INTENT(IN) :: lon,lat  ! the first guess location for the storm center
   REAL(r_size),INTENT(IN) :: rad(nprof)  ! the radius from the storm center in azimuthal average
+  REAL(r_size),INTENT(IN) :: rig(nlonh)  ! grid number for model variables in global domain
+  REAL(r_size),INTENT(IN) :: rjg(nlath)  ! grid number for model variables in global domain
   REAL(r_size),INTENT(IN) :: v3d(nlevh,nlonh,nlath,nv3dd)  ! 3d model variables
   REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)  ! 2d model variables
   REAL(r_size),INTENT(OUT) :: yobs(nprof)  ! H(x)
@@ -3251,9 +3251,11 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,stgg
   INTEGER,INTENT(IN),OPTIONAL :: stggrd
   INTEGER :: ii, jj
   REAL(r_size),ALLOCATABLE :: theta(:)
-  REAL(r_size) :: u(nlonh,nlath),v(nlonh,nlath)
-  REAL(r_size) :: slp2d(nglon,nglat)  ! 2d variable in the global domain
-  REAL(r_size) :: vt,t,q,topo
+  REAL(r_size) :: vt(nlevh,nlonh,nlath)
+  REAL(r_size) :: slp2d(nlon,nlat)     ! 2d variable in local domain
+  REAL(r_size) :: slp2dg(nglon,nglat)  ! 2d variable in global domain
+  REAL(r_size) :: t,q,topo
+  real(r_size) :: rig_tc,rjg_tc  ! the storm center location in global domain of the model simulation
   REAL(RP) :: rotc(2)
 
   INTEGER :: stggrd_ = 1
@@ -3262,15 +3264,8 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,stgg
   yobs = undef
   qc = iqc_good
 
-!-- 1. Make vertical average of U and V over the cloud-cover levels
-!      The cloud-cover levels are estimated by the observation (Tbb)
-!      (In each MPI process)
-
-  call vert_ave( rk1, rk2, v3d(:,:,:,iv3dd_z), v3d(:,:,:,iv3dd_u), u )
-  call vert_ave( rk1, rk2, v3d(:,:,:,iv3dd_z), v3d(:,:,:,iv3dd_v), v )
-!SUBROUTINE vert_ave( ix, jy, kz, z1, z2, zval(kz,ix,jy), ival(kz,ix,jy), oval(ix,jy) )
-
-!-- 2.1 convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
+!-- (Process 1: Determine the storm center based on the SLP)
+!-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
 
   do jj=1,nlath
      do ii=1,nlonh
@@ -3282,41 +3277,125 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,ri,rj,rk1,rk2,lon,lat,rad,v3d,v2d,yobs,qc,stgg
      end do
   end do
 
-!-- 2.2 Gather all slp in all subdomains
+!-- 2. gather slp2d in each local domain to slp2dg in global domain
+!--    (the rank to which the storm center (rig_tcobs,rjg_tcobs) belongs)
 
-  call MPI_All_Gather()
+  call MPI_Barrier()
+  call MPI_Gather()  ! rank(0-M) -> rankm
 
-!-- From here, calculation is only MPI root rank
-!-- 2.3 Determine the storm center based on the SLP
+!-- 3. determine the storm center in the model simulation on only rankm
+!--    (slp2dg -> rig_tc,rjg_tc)
 
-  call DC_Braun_f( x, y, (/xc_fg,yc_fg/), slp,  &
-  &                search_dis, var_dis, (/xc,yc/), stdopt=.false. )  ! From stpk_lib
+  call MPI_Barrier()
+  if(my_rank==m)then
+     call DC_Braun()
+  end if
 
-!-- 3. Calculate tangential wind component based on the vertical average
-!      of U and V
+!-- 4. broadcast (rig_tc,rjg_tc)
+  call MPI_Barrier()
+  call MPI_Bcast()  ! rankm -> rank(0-M)
 
-  call uv2vt( x, y, xc, yc, u, v, vt )
-!SUBROUTINE uv2vt( ix, jy, x, y, xc, yc, u, v, vt )
+  do ii=1,nprof
 
-!-- 4. Make azimuthal average (Vtb) of the tangential wind at the radius
+  !-- 5. define azimuthal sampling number at each observation radius (rad(ii))
 
-  do jj=1,nprof
-     if(rad(jj)>0.0)then
-        ntheta=int(360.0*deg2rad*rad(jj)/DX)
-        allocate(theta(ntheta))
-        theta=(/((real(ii-1)/),ii=1,ntheta)/)
-        call tangent_mean_scal( x, y, xc, yc, vt,  &
-  &                             rad(jj:jj), theta, yobs(jj), axis='xy' )  ! From stpk_lib
-        deallocate(theta)
-     else
-        yobs(jj)=0.0
+     ntheta=int(360.0*deg2rad*rad(ii)/DX)
+     allocate(Vtb(ntheta))
+     allocate(i_Vtb(ntheta))  ! For counting avairable points
+     Vtb=0.0
+     i_Vtb=0
+
+     do jj=1,ntheta
+
+     !-- 6. calculate ri(r,t)g,rj(r,t)g at rad(ii) and theta
+
+        theta=360.0*deg2rad*real(jj-1)/real(ntheta-1)
+
+        rig_rt=rig_tc+(rad(ii)/DX)*cos(theta)
+        rjg_rt=rjg_tc+(rad(ii)/DY)*sin(theta)
+
+     !-- 7. determine the nearest grid in the model for rig_rt,rjg_rt
+     !--    (rig_rt,rjg_rt) -> (rigm(i_rigm),rjgm(j_rjgm))
+
+        call rgrt_floor( nlonh, nlath, rig_rt, rjg_rt,  &
+  &                      rig, rjg, i_rigm, j_rjgm, rigm, rjgm )
+
+        if(i_rigm==0)then  ! point [rad(ii), theta] is outside the domain
+           cycle
+        end if
+
+     !-- (Process 2:Make vertical averages of horizontal winds)
+     !-- 8. make vertical averages of horizontal winds (U and V)
+     !--    at the four points (i.e., rigm~rigm+1,rjgm~rjgm+1)
+
+        call vert_ave( rk1, rk2,  &
+  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_z),  &
+  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_u),  &
+  &                    u(1:2,1:2) )
+        call vert_ave( rk1, rk2,  &
+  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_z),  &
+  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_v),  &
+  &                    v(1:2,1:2) )
+
+     !-- 9. calculate Vt from U and V at the four points,
+     !--    and interpolate Vt(rad(ii),theta) from the four Vt
+
+        xi=(ri(i_rigm)-rig_tc)*DX/rad(ii)
+        yj=(rj(j_rjgm)-rjg_tc)*DY/rad(ii)
+        Vt(1,1)=xi*v(1,1)-yj*u(1,1)  ! rigm,rjgm
+
+        xi=(ri(i_rigm+1)-rig_tc)*DX/rad(ii)
+        yj=(rj(j_rjgm)-rjg_tc)*DY/rad(ii)
+        Vt(2,1)=xi*v(2,1)-yj*u(2,1)  ! rigm+1,rjgm
+
+        xi=(ri(i_rigm)-rig_tc)*DX/rad(ii)
+        yj=(rj(j_rjgm+1)-rjg_tc)*DY/rad(ii)
+        Vt(1,2)=xi*v(1,2)-yj*u(1,2)  ! rigm,rjgm+1
+
+        xi=(ri(i_rigm+1)-rig_tc)*DX/rad(ii)
+        yj=(rj(j_rjgm+1)-rjg_tc)*DY/rad(ii)
+        Vt(2,2)=xi*v(2,2)-yj*u(2,2)  ! rigm+1,rjgm+1
+
+        a=rig_rt-rigm
+        b=rjg_rt-rjgm
+        Vtb(jj)=(1.0-b)*(1.0-a)*Vt(1,1)+(1.0-b)*a*Vt(2,1)  &
+  &            +b*(1.0-a)*Vt(1,2)+b*a*Vt(2,2)
+        i_Vtb(jj)=1  ! avairable flag for azimuthal average
+
+     end do  ! jj=1,ntheta
+
+  !-- 10. make azimuthal average Vtb_sec (sector range) of Vtb at rad(ii)
+
+     call azim_ave( ntheta, Vtb, i_Vtb, Vtb_sec(my_rank), ic=i_Vtb_sec(my_rank) )
+
+  !-- 11. gather Vtb_sec (and i_Vtb_sec) in each rank to Vtbg_sec in rankm
+  !--    (rankm includes the storm center (rig_tcobs,rjg_tcobs))
+
+     call MPI_Barrier()
+     call MPI_Gather()  ! rank(0-M) -> rankm
+
+  !-- 12. make average of Vtb_sec in each sector at rad(ii)
+
+     call MPI_Barrier()
+     if(my_rank==m)then
+        call azim_ave( n_procs, Vtb_sec, i_Vtb_sec, yobs(ii) )
      end if
-     qc=iqc_good  ! No check
-  end do
 
-!-- 5. Broadcast yobs in all MPI processes
+  !-- 13. broadcast yobs(ii) at rad(ii)
 
-  call MPI_Broadcast()
+     call MPI_Barrier()
+     call MPI_Bcast()
+
+     if(i_Vtb_sec(my_rank)==1)then
+        qc(ii)=iqc_good  ! No check
+     else
+        qc(ii)=iqc_obs_bad  ! Not include in this rank
+     end if
+
+     deallocate(Vtb)
+     deallocate(i_Vtb)
+
+  end do  ! ii=1,nprof
 
 !-- Finish (not need below)
 
@@ -3728,5 +3807,53 @@ SUBROUTINE write_obs_H08(cfile,obs,append,missing)
 
   RETURN
 END SUBROUTINE write_obs_H08vt
+
+!-- Floor function (private)
+SUBROUTINE rgrt_floor( ni, nj, ri_ref, rj_ref, ri, rj,  &
+  &                    i_ri, j_rj, floor_ri, floor_rj )
+  IMPLICIT NONE
+  INTEGER, INTENT(IN) :: ni,nj
+  REAL(r_size),INTENT(IN) :: ri_ref,rj_ref
+  REAL(r_size),INTENT(IN) :: ri(ni),rj(nj)
+  INTEGER,INTENT(OUT) :: i_ri,j_rj
+  REAL(r_size),INTENT(OUT) :: floor_ri,floor_rj
+  INTEGER :: ii
+
+  if((ri_ref<ri(1)).or.(rj_ref<rj(1)).or.  &
+  &  (ri_ref>ri(ni)).or.(rj_ref>rj(nj)))then
+  ! searching point is outside the domain
+     i_ri=0
+     j_rj=0
+     floor_ri=ri(1)-1.0
+     floor_rj=rj(1)-1.0
+     RETURN
+  else
+     i_ri=1
+     j_rj=1
+     floor_ri=ri(1)
+     floor_rj=rj(1)
+  end if
+
+  do ii=2,ni
+     if(ri_ref<ri(ii))then
+        exit
+     else
+        i_ri=ii
+        floor_ri=ri(ii)
+     end if
+  end do  ! ii=1,ni
+
+  do ii=2,nj
+     if(rj_ref<rj(ii))then
+        exit
+     else
+        j_rj=ii
+        floor_rj=rj(ii)
+     end if
+  end do  ! ii=1,ni
+
+  RETURN
+
+END SUBROUTINE rgrt_floor
 
 END MODULE common_obs_scale
