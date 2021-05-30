@@ -635,19 +635,19 @@ END SUBROUTINE prsadj
 !-----------------------------------------------------------------------
 ! Calculate vertical average of a 3d variable (Author: Satoki Tsujino)
 !-----------------------------------------------------------------------
-SUBROUTINE vert_ave( ix, jy, kz, z1, z2, zval(kz,ix,jy), ival(kz,ix,jy), oval(ix,jy) )
+SUBROUTINE vert_ave( kz, z1, z2, zval(kz,ix,jy), ival(kz,ix,jy), oval(ix,jy) )
   IMPLICIT NONE
-  INTEGER, INTENT(in) :: ix, jy, kz ! Grid numbers in x, y, and z, respectively
-  REAL(r_size), INTENT(in) :: z1    ! Bottom height for the vertical average [m]
-  REAL(r_size), INTENT(in) :: z2    ! Top height for the vertical average [m]
-  REAL(r_size), INTENT(in) :: zval(kz,ix,jy)  ! 3d height in model grid
-  REAL(r_size), INTENT(in) :: ival(kz,ix,jy)  ! 3d variable for the vertical average
-  REAL(r_size), INTENT(out) :: oval(ix,jy)    ! the vertically averaged 2d variable
+  INTEGER, INTENT(in) :: kz                  ! vertical grid number for the model variable
+  REAL(r_size), INTENT(in) :: z1             ! Bottom height for the vertical average [m]
+  REAL(r_size), INTENT(in) :: z2             ! Top height for the vertical average [m]
+  REAL(r_size), INTENT(in) :: zval(kz,2,2)   ! 3d height in model grid
+  REAL(r_size), INTENT(in) :: ival(kz,2,2)   ! 3d variable for the vertical average
+  REAL(r_size), INTENT(out) :: oval(2,2)     ! the vertically averaged 2d variable
   REAL(r_size) :: icounter
   INTEGER :: ii, jj, kk
 
-  do jj=1,jy
-  do ii=1,ix
+  do jj=1,2
+  do ii=1,2
      oval(ii,jj)=0.0
      icounter=0.0
      do kk=1,kz
@@ -662,42 +662,89 @@ SUBROUTINE vert_ave( ix, jy, kz, z1, z2, zval(kz,ix,jy), ival(kz,ix,jy), oval(ix
   end do
   end do
 
+  RETURN
+
 END SUBROUTINE vert_ave
 
 !-----------------------------------------------------------------------
-! Convert Cartesian U and V to tangential V (Author: Satoki Tsujino)
+! Calculate azimuthal average (Author: Satoki Tsujino)
 !-----------------------------------------------------------------------
-SUBROUTINE uv2vt( ix, jy, x, y, xc, yc, u, v, vt )
+SUBROUTINE azim_ave( nt, azim_val, i_counter, mean_val, ic )
   IMPLICIT NONE
-  INTEGER, INTENT(in) :: ix, jy ! Grid numbers in x and y, respectively
-  REAL(r_size), INTENT(in) :: x(ix)  ! X coordinate [m]
-  REAL(r_size), INTENT(in) :: y(jy)  ! Y coordinate [m]
-  REAL(r_size), INTENT(in) :: xc     ! TC center on the X coordinate [m]
-  REAL(r_size), INTENT(in) :: yc     ! TC center on the Y coordinate [m]
-  REAL(r_size), INTENT(in) :: u(ix,jy)    ! X component of 2d horizontal wind [m/s]
-  REAL(r_size), INTENT(in) :: v(ix,jy)    ! Y component of 2d horizontal wind [m/s]
-  REAL(r_size), INTENT(out) :: vt(ix,jy)  ! Tangential wind [m/2]
-  INTEGER :: ii, jj
-  REAL(r_size) :: rr, xdis, ydis, r_inv
+  INTEGER, INTENT(in) :: nt                  ! sampling number for azimuthal direction
+  REAL(r_size), INTENT(in) :: azim_val(nt)   ! variable for azimuthal direction
+  REAL(r_size), INTENT(in) :: i_counter(nt)  ! flag for candidate sampling point (1 = OK, 0 = NG)
+  REAL(r_size), INTENT(out) :: mean_val      ! azimuthally averaged variable for azim_val
+  REAL(r_size), INTENT(out), OPTION :: ic    ! sampling number for averaging (i.e., sum of i_counter)
+  INTEGER :: ii
+  REAL(r_size) :: nc
 
-  vt=0.0
+  mean_val=0.0d0
+  nc=0
 
-  do jj=1,jy
-  do ii=1,ix
-     xdis=x(ii)-xc
-     ydis=y(jj)-yc
-     rr=sqrt(xdis*xdis+ydis*ydis)
-     if(rr>0.0)then
-        ! |r| Vt = r x v (r: pointing vector (x,y), v: velocity vector (u,v))a
-        r_inv=1.0/rr
-        xdis=xdis*r_inv
-        ydis=ydis*r_inv
-        vt(ii,jj)=xdis*v(ii,jj)-ydis*u(ii,jj)
+  do ii=1,nt
+     if (i_counter(ii)==1) then
+        mean_val=mean_val+azim_val(ii)
+        nc=nc+1
      end if
   end do
-  end do
 
-END SUBROUTINE uv2vt
+  if (present(ic)) then
+     ic=nc
+  end if
+
+  RETURN
+
+END SUBROUTINE azim_ave
+
+!-----------------------------------------------------------------------
+! Floor operation for ri,rj at a certain point in horizon (Author: Satoki Tsujino)
+!-----------------------------------------------------------------------
+SUBROUTINE rgrt_floor( ni, nj, ri_ref, rj_ref, ri, rj, i_ri, j_rj, floor_ri, floor_rj )
+  IMPLICIT NONE
+  INTEGER, INTENT(in) :: ni,nj                   ! array number for ri,rj
+  REAL(r_size), INTENT(in) :: ri_ref,rj_ref      ! the target point
+  REAL(r_size), INTENT(in) :: ri(ni),rj(nj)      ! ri and rj of the model in global domain
+  REAL(r_size), INTENT(out) :: i_ri,j_rj         ! element numbers for floor_ri,floor_rj
+  REAL(r_size), INTENT(out) :: floor_ri,floor_rj ! results of the floor operation
+  INTEGER :: ii
+
+  if((ri_ref<ri(1)).or.(rj_ref<rj(1)).or.  &
+  &  (ri_ref>ri(ni)).or.(rj_ref>rj(nj)))then
+  ! searching point is outside the domain
+     i_ri=0
+     j_rj=0
+     floor_ri=ri(1)-1.0
+     floor_rj=rj(1)-1.0
+     RETURN
+  else
+     i_ri=1
+     j_rj=1
+     floor_ri=ri(1)
+     floor_rj=rj(1)
+  end if
+
+  do ii=2,ni
+     if(ri_ref<ri(ii))then
+        exit
+     else
+        i_ri=ii
+        floor_ri=ri(ii)
+     end if
+  end do  ! ii=1,ni
+
+  do ii=2,nj
+     if(rj_ref<rj(ii))then
+        exit
+     else
+        j_rj=ii
+        floor_rj=rj(ii)
+     end if
+  end do  ! ii=1,ni
+
+  RETURN
+
+END SUBROUTINE rgrt_floor
 
 !-----------------------------------------------------------------------
 ! Compute radar reflectivity and radial wind.
@@ -3232,15 +3279,15 @@ END SUBROUTINE write_obs_H08
 !         0: non-staggered grid
 !         1: staggered grid
 !-----------------------------------------------------------------------
-SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
+SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   &                         rig,rjg,v3d,v2d,yobs,qc,stggrd)
   use scale_mapproj, only: &
       MPRJ_rotcoef
   IMPLICIT NONE
   INTEGER,INTENT(in) :: nprof  ! observation number for Vt observation
-  REAL(r_size),INTENT(IN) :: rig_tcobs,rjg_tcobs  ! the first guess location for the storm center (lon,lat) in global domain
-  REAL(r_size),INTENT(IN) :: rk1,rk2  ! the levels (grid numbers) for the vertical average
-  REAL(r_size),INTENT(IN) :: lon,lat  ! the first guess location for the storm center
+  REAL(r_size),INTENT(IN) :: rig_tcobs(nprof),rjg_tcobs(nprof)  ! the first guess location for the storm center (lon,lat) in global domain
+  REAL(r_size),INTENT(IN) :: rz1(nprof),rz2(nprof)  ! the levels (unit: m) for the vertical average
+  REAL(r_size),INTENT(IN) :: lon(nprof),lat(nprof)  ! the first guess location for the storm center
   REAL(r_size),INTENT(IN) :: rad(nprof)  ! the radius from the storm center in azimuthal average
   REAL(r_size),INTENT(IN) :: rig(nlonh)  ! grid number for model variables in global domain
   REAL(r_size),INTENT(IN) :: rjg(nlath)  ! grid number for model variables in global domain
@@ -3249,13 +3296,24 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
   REAL(r_size),INTENT(OUT) :: yobs(nprof)  ! H(x)
   INTEGER,INTENT(OUT) :: qc(nprof)
   INTEGER,INTENT(IN),OPTIONAL :: stggrd
-  INTEGER :: ii, jj
-  REAL(r_size),ALLOCATABLE :: theta(:)
-  REAL(r_size) :: vt(nlevh,nlonh,nlath)
-  REAL(r_size) :: slp2d(nlon,nlat)     ! 2d variable in local domain
-  REAL(r_size) :: slp2dg(nglon,nglat)  ! 2d variable in global domain
-  REAL(r_size) :: t,q,topo
-  real(r_size) :: rig_tc,rjg_tc  ! the storm center location in global domain of the model simulation
+  INTEGER :: ii, jj, m
+  INTEGER :: ntheta                     ! sampling number for azimuthal direction at a radius
+  INTEGER :: i_rigm,j_rjgm              ! floor(rig_rt),floor(rjg_rt)
+  INTEGER,ALLOCATABLE :: i_Vtb(:)       ! variable for counting avairable points
+  INTEGER :: i_Vtb_sec(n_procs)         ! variable for counting avairable points in each MPI rank
+  REAL(r_size) :: r_inv                 ! inversion of rad(ii)
+  REAL(r_size) :: theta                 ! azimuthal angle (rad)
+  REAL(r_size) :: rig_rt,rjg_rt         ! rig and rjg at a certain point (rad(ii),theta)
+  REAL(r_size) :: rigm,rjgm             ! rig(i_rigm),rjg(j_rjgm)
+  REAL(r_size) :: xi,yj                 ! rotating operators for calculating Vt from u,v
+  REAL(r_size) :: a,b                   ! ratios for the bilinear interpolation from the four points to (rad(ii),theta)
+  REAL(r_size),ALLOCATABLE :: Vtb(:)    ! vertical average of Vt(theta) at a radius
+  REAL(r_size) :: Vtb_sec(n_procs)      ! azimuthal average in a sector (i.e., a MPI rank) of Vtb(theta) at a radius
+  REAL(r_size) :: u(2,2),v(2,2),Vt(2,2) ! vertical averages of U, V, and Vt at the four points in which is located near (rad(ii),theta)
+  REAL(r_size) :: slp2d(nlon,nlat)      ! 2d variable in local domain
+  REAL(r_size) :: slp2dg(nglon,nglat)   ! 2d variable in global domain
+  REAL(r_size) :: t,q,topo              ! temporary variables for calculating slp from ps
+  real(r_size) :: rig_tc,rjg_tc         ! the storm center location in global domain of the model simulation
   REAL(RP) :: rotc(2)
 
   INTEGER :: stggrd_ = 1
@@ -3267,8 +3325,8 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
 !-- (Process 1: Determine the storm center based on the SLP)
 !-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
 
-  do jj=1,nlath
-     do ii=1,nlonh
+  do jj=1,nlat
+     do ii=1,nlon
         CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
         CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
         CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
@@ -3297,13 +3355,19 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
 
   do ii=1,nprof
 
+     r_inv=1.0d0/rad(ii)
+
   !-- 5. define azimuthal sampling number at each observation radius (rad(ii))
 
      ntheta=int(360.0*deg2rad*rad(ii)/DX)
      allocate(Vtb(ntheta))
      allocate(i_Vtb(ntheta))  ! For counting avairable points
-     Vtb=0.0
+     Vtb=0.0d0
      i_Vtb=0
+
+!$OMP PARALLEL DEFAULT(SHARED)
+!$OMP DO SCHEDULE(RUNTIME)  &
+!$OMP &  PRIVATE(jj,theta,rig_rt,rjg_rt,i_rigm,j_rjgm,rigm,rjgm,u,v,xi,yj,Vt,a,b)
 
      do jj=1,ntheta
 
@@ -3328,11 +3392,11 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
      !-- 8. make vertical averages of horizontal winds (U and V)
      !--    at the four points (i.e., rigm~rigm+1,rjgm~rjgm+1)
 
-        call vert_ave( rk1, rk2,  &
+        call vert_ave( nlevh,rz1, rz2,  &
   &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_z),  &
   &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_u),  &
   &                    u(1:2,1:2) )
-        call vert_ave( rk1, rk2,  &
+        call vert_ave( nlevh,rz1, rz2,  &
   &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_z),  &
   &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_v),  &
   &                    v(1:2,1:2) )
@@ -3340,20 +3404,20 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
      !-- 9. calculate Vt from U and V at the four points,
      !--    and interpolate Vt(rad(ii),theta) from the four Vt
 
-        xi=(ri(i_rigm)-rig_tc)*DX/rad(ii)
-        yj=(rj(j_rjgm)-rjg_tc)*DY/rad(ii)
+        xi=(ri(i_rigm)-rig_tc)*DX*r_inv
+        yj=(rj(j_rjgm)-rjg_tc)*DY*r_inv
         Vt(1,1)=xi*v(1,1)-yj*u(1,1)  ! rigm,rjgm
 
-        xi=(ri(i_rigm+1)-rig_tc)*DX/rad(ii)
-        yj=(rj(j_rjgm)-rjg_tc)*DY/rad(ii)
+        xi=(ri(i_rigm+1)-rig_tc)*DX*r_inv
+        yj=(rj(j_rjgm)-rjg_tc)*DY*r_inv
         Vt(2,1)=xi*v(2,1)-yj*u(2,1)  ! rigm+1,rjgm
 
-        xi=(ri(i_rigm)-rig_tc)*DX/rad(ii)
-        yj=(rj(j_rjgm+1)-rjg_tc)*DY/rad(ii)
+        xi=(ri(i_rigm)-rig_tc)*DX*r_inv
+        yj=(rj(j_rjgm+1)-rjg_tc)*DY*r_inv
         Vt(1,2)=xi*v(1,2)-yj*u(1,2)  ! rigm,rjgm+1
 
-        xi=(ri(i_rigm+1)-rig_tc)*DX/rad(ii)
-        yj=(rj(j_rjgm+1)-rjg_tc)*DY/rad(ii)
+        xi=(ri(i_rigm+1)-rig_tc)*DX*r_inv
+        yj=(rj(j_rjgm+1)-rjg_tc)*DY*r_inv
         Vt(2,2)=xi*v(2,2)-yj*u(2,2)  ! rigm+1,rjgm+1
 
         a=rig_rt-rigm
@@ -3363,6 +3427,9 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rk1,rk2,lon,lat,rad,  &
         i_Vtb(jj)=1  ! avairable flag for azimuthal average
 
      end do  ! jj=1,ntheta
+
+!$OMP END DO
+!$OMP END PARALLEL
 
   !-- 10. make azimuthal average Vtb_sec (sector range) of Vtb at rad(ii)
 
@@ -3807,53 +3874,5 @@ SUBROUTINE write_obs_H08(cfile,obs,append,missing)
 
   RETURN
 END SUBROUTINE write_obs_H08vt
-
-!-- Floor function (private)
-SUBROUTINE rgrt_floor( ni, nj, ri_ref, rj_ref, ri, rj,  &
-  &                    i_ri, j_rj, floor_ri, floor_rj )
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: ni,nj
-  REAL(r_size),INTENT(IN) :: ri_ref,rj_ref
-  REAL(r_size),INTENT(IN) :: ri(ni),rj(nj)
-  INTEGER,INTENT(OUT) :: i_ri,j_rj
-  REAL(r_size),INTENT(OUT) :: floor_ri,floor_rj
-  INTEGER :: ii
-
-  if((ri_ref<ri(1)).or.(rj_ref<rj(1)).or.  &
-  &  (ri_ref>ri(ni)).or.(rj_ref>rj(nj)))then
-  ! searching point is outside the domain
-     i_ri=0
-     j_rj=0
-     floor_ri=ri(1)-1.0
-     floor_rj=rj(1)-1.0
-     RETURN
-  else
-     i_ri=1
-     j_rj=1
-     floor_ri=ri(1)
-     floor_rj=rj(1)
-  end if
-
-  do ii=2,ni
-     if(ri_ref<ri(ii))then
-        exit
-     else
-        i_ri=ii
-        floor_ri=ri(ii)
-     end if
-  end do  ! ii=1,ni
-
-  do ii=2,nj
-     if(rj_ref<rj(ii))then
-        exit
-     else
-        j_rj=ii
-        floor_rj=rj(ii)
-     end if
-  end do  ! ii=1,ni
-
-  RETURN
-
-END SUBROUTINE rgrt_floor
 
 END MODULE common_obs_scale
