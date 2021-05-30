@@ -1821,7 +1821,8 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   integer :: obtyp           ! observation report type
   integer :: obset
   integer :: obidx
-  real(r_size) :: rdx, rdy, radm
+  real(r_size) :: rdx, rdy
+  real(r_size) :: radm       ! radial distance from the storm center to the model grid (m)
   real(r_size) :: nd_h, nd_v ! normalized horizontal/vertical distances
 
   nrloc = 0.0d0
