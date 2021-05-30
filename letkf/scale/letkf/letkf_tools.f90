@@ -1803,6 +1803,7 @@ end subroutine obs_local_range
 
 !-------------------------------------------------------------------------------
 ! Subroutine for main calculation of obs_local
+! Add procedures for H08vt (by Satoki Tsujino: 2021/05/30)
 !-------------------------------------------------------------------------------
 subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   use scale_grid, only: &
@@ -1820,7 +1821,7 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   integer :: obtyp           ! observation report type
   integer :: obset
   integer :: obidx
-  real(r_size) :: rdx, rdy
+  real(r_size) :: rdx, rdy, radm
   real(r_size) :: nd_h, nd_v ! normalized horizontal/vertical distances
 
   nrloc = 0.0d0
@@ -1875,6 +1876,16 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   else if (obtyp == 23) then ! obtypelist(obtyp) == 'H08IRB'                ! H08
     nd_v = ABS(LOG(obsda_sort%lev(iob)) - LOG(rlev)) / vert_loc_ctype(ic)   ! H08 for H08IRB, use obsda2%lev(iob) for the base of vertical localization
 #endif
+  !-- Added an entry for H08vt (by satoki) from here ---
+  else if (obelm == id_h08vt_obs) then
+    if (obsda_sort%lev2(iob) < rz) then  ! the model grid is higher than the top height of the observation
+       nd_v = ABS(obsda_sort%lev2(iob) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+    else if (obsda_sort%lev(iob) > rz) then  ! the model grid is lower than the bottom height of the observation
+       nd_v = ABS(obsda_sort%lev(iob) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+    else  ! the model grid is located in the observation layer
+       nd_v = 0.0d0
+    end if
+  !-- Added an entry for H08vt (by satoki) to here ---
   else
     nd_v = ABS(LOG(obs(obset)%lev(obidx)) - LOG(rlev)) / vert_loc_ctype(ic)
   end if
@@ -1891,6 +1902,16 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   rdx = (ri - obs(obset)%ri(obidx)) * DX
   rdy = (rj - obs(obset)%rj(obidx)) * DY
   nd_h = sqrt(rdx*rdx + rdy*rdy) / hori_loc_ctype(ic)
+
+  !-- Replace rdx, rdy, and nd_h with relative distance (R) for H08vt (by satoki) from here ---
+  if (obelm == id_h08vt_obs) then
+    !-- Calculate the radial distance (radm) from the storm center (obsda_sort%ri,rj) at the model grid (ri,rj)
+    rdx = (ri - obs(obset)%ri(obidx)) * DX
+    rdy = (rj - obs(obset)%rj(obidx)) * DY
+    radm = sqrt(rdx*rdx + rdy*rdy)
+    nd_h = ABS(obsda_sort%rad(iob) - radm) / hori_loc_ctype(ic)
+  end if
+  !-- Replace rdx, rdy, and nd_h for H08vt (by satoki) to here ---
 
   !--- reject obs by normalized horizontal distance
   if (nd_h > dist_zero_fac) then
