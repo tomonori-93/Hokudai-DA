@@ -3718,7 +3718,7 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 END SUBROUTINE Trans_XtoY_H08VT
 
 !-----------------------------------------------------------------------
-!   Read observation data by Satoki Honda (05/26/2021)
+!   Read observation data by Satoki Tsujino (05/26/2021)
 !
 !  [observation format of H08Vt in LETKF]
 !   (In files, all variables are stored in single-precision float)
