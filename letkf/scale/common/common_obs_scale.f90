@@ -667,14 +667,14 @@ SUBROUTINE vert_ave( kz, z1, z2, zval(kz,ix,jy), ival(kz,ix,jy), oval(ix,jy) )
 END SUBROUTINE vert_ave
 
 !-----------------------------------------------------------------------
-! Calculate azimuthal average (Author: Satoki Tsujino)
+! Sum in azimuthal direction (Author: Satoki Tsujino)
 !-----------------------------------------------------------------------
-SUBROUTINE azim_ave( nt, azim_val, i_counter, mean_val, ic )
+SUBROUTINE azim_sum( nt, azim_val, i_counter, mean_val, ic )
   IMPLICIT NONE
   INTEGER, INTENT(in) :: nt                  ! sampling number for azimuthal direction
   REAL(r_size), INTENT(in) :: azim_val(nt)   ! variable for azimuthal direction
   REAL(r_size), INTENT(in) :: i_counter(nt)  ! flag for candidate sampling point (1 = OK, 0 = NG)
-  REAL(r_size), INTENT(out) :: mean_val      ! azimuthally averaged variable for azim_val
+  REAL(r_size), INTENT(out) :: sum_val       ! sum of azim_val in azimuthal direction
   REAL(r_size), INTENT(out), OPTION :: ic    ! sampling number for averaging (i.e., sum of i_counter)
   INTEGER :: ii
   REAL(r_size) :: nc
@@ -695,7 +695,7 @@ SUBROUTINE azim_ave( nt, azim_val, i_counter, mean_val, ic )
 
   RETURN
 
-END SUBROUTINE azim_ave
+END SUBROUTINE azim_sum
 
 !-----------------------------------------------------------------------
 ! Floor operation for ri,rj at a certain point in horizon (Author: Satoki Tsujino)
@@ -3433,7 +3433,7 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 
   !-- 10. make azimuthal average Vtb_sec (sector range) of Vtb at rad(ii)
 
-     call azim_ave( ntheta, Vtb, i_Vtb, Vtb_sec(my_rank), ic=i_Vtb_sec(my_rank) )
+     call azim_sum( ntheta, Vtb, i_Vtb, Vtb_sec(my_rank), ic=i_Vtb_sec(my_rank) )
 
   !-- 11. gather Vtb_sec (and i_Vtb_sec) in each rank to Vtbg_sec in rankm
   !--    (rankm includes the storm center (rig_tcobs,rjg_tcobs))
@@ -3445,7 +3445,8 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 
      call MPI_Barrier()
      if(my_rank==m)then
-        call azim_ave( n_procs, Vtb_sec, i_Vtb_sec, yobs(ii) )
+        call azim_sum( n_procs, Vtb_sec, i_Vtb_sec, yobs(ii) )
+        yobs(ii)=yobs(ii)/real(ntheta)
      end if
 
   !-- 13. broadcast yobs(ii) at rad(ii)
@@ -3828,7 +3829,7 @@ SUBROUTINE read_obs_H08vt(cfile,obs)
 END SUBROUTINE read_obs_H08vt
 
 !-- Write observation data for H08vt
-SUBROUTINE write_obs_H08(cfile,obs,append,missing)
+SUBROUTINE write_obs_H08vt(cfile,obs,append,missing)
   IMPLICIT NONE
   CHARACTER(*),INTENT(IN) :: cfile
   TYPE(obs_info),INTENT(IN) :: obs
