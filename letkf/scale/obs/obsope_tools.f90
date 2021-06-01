@@ -513,9 +513,9 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 
 #endif
           !=====================================================================
-          case (obsfmt_h08vt)  ! For H08VT (Added by satoki)
+!          case (obsfmt_h08vt)  ! For H08VT (Added by satoki)
           !---------------------------------------------------------------------
-             write(*,*) "Under construction (satoki)"
+
           !=====================================================================
           end select
 
@@ -663,6 +663,129 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 #endif
 !!!          ENDIF ! H08
 
+          !---------------------------------------------------------------------
+          ! Calculate H(x) for H08VT (Added by Satoki Tsujino)
+          ! [Under construction]
+          !---------------------------------------------------------------------
+          IF(OBS_IN_FORMAT(iof) == obsfmt_h08vt)THEN
+            nprof_H08vt = 0
+            nallprof = obs(iof)%nobs
+
+            ALLOCATE(tmp_ri_H08vt(nallprof))
+            ALLOCATE(tmp_rj_H08vt(nallprof))
+            ALLOCATE(tmp_lon_H08vt(nallprof))
+            ALLOCATE(tmp_lat_H08vt(nallprof))
+
+            do n = 1, nallprof
+              if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
+                call phys2ij(obs(iof)%lon(n),obs(iof)%lat(n),rig,rjg)  ! Search rig,rjg from lon,lat
+                !call rij_rank_g2l(rig,rjg,proc,ritmp,rjtmp)  ! Calculate ril,rjl from rig,rjg
+
+                if (myrank_d == proc) then
+                  nprof_H08vt = nprof_H08vt + 1 ! num of prof in myrank node
+                  tmp_ri_H08vt(nprof_H08vt) = rig
+                  tmp_rj_H08vt(nprof_H08vt) = rjg
+                  tmp_lon_H08vt(nprof_H08vt) = obs(iof)%lon(n)
+                  tmp_lat_H08vt(nprof_H08vt) = obs(iof)%lat(n)
+
+!                  nobs_slot = nobs_slot + 1
+                  obsda%set(nobs-nch+1:nobs) = iof
+                  obsda%ri(nobs-nch+1:nobs) = rig
+                  obsda%rj(nobs-nch+1:nobs) = rjg
+                  ri(nobs-nch+1:nobs) = rig
+                  rj(nobs-nch+1:nobs) = rjg
+                  do ch = 1, nch
+                    obsda%idx(nobs-nch+ch) = ns + ch - 1
+                  enddo
+
+                end if ! [ myrank_d == proc ]
+              end if ! [ obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot) ]
+            end do ! [ n = 1, nallprof ]
+
+            IF(nprof_H08vt >=1)THEN
+              ALLOCATE(ri_H08vt(nprof_H08vt))
+              ALLOCATE(rj_H08vt(nprof_H08vt))
+              ALLOCATE(lon_H08vt(nprof_H08vt))
+              ALLOCATE(lat_H08vt(nprof_H08vt))
+
+              ri_H08vt = tmp_ri_H08vt(1:nprof_H08vt)
+              rj_H08vt = tmp_rj_H08vt(1:nprof_H08vt)
+              lon_H08vt = tmp_lon_H08vt(1:nprof_H08vt)
+              lat_H08vt = tmp_lat_H08vt(1:nprof_H08vt)
+
+            ENDIF
+
+            DEALLOCATE(tmp_ri_H08vt,tmp_rj_H08vt)
+            DEALLOCATE(tmp_lon_H08vt,tmp_lat_H08vt)
+
+            !------
+            if (.not. USE_OBS(23)) then
+              obsda%qc(nobs_0+1:nobs) = iqc_otype
+            else
+            !------
+
+            ALLOCATE(yobs_H08vt(nprof_H08vt))
+            ALLOCATE(qc_H08vt(nprof_H08vt))
+
+            CALL Trans_XtoY_H08VT(nprof_H08vt,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
+  &                               rig,rjg,v3d,v2d,cent_flag,yobs_H08vt,qc_H08vt,stggrd)
+
+! Clear sky yobs(>0)
+! Cloudy sky yobs(<0)
+
+            obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
+
+            ns = 0
+            DO nn = nobs_0 + 1, nobs
+              ns = ns + 1
+
+              obsda%val(nn) = yobs_H08(ns)
+              obsda%qc(nn) = qc_H08(ns)
+
+              if(obsda%qc(nn) == iqc_good)then
+!!!!!!                rig = obsda%ri(nn)
+!!!!!!                rjg = obsda%rj(nn)
+
+! -- tentative treatment around the TC center --
+!                dist_MSLP_TC = sqrt(((rig - MSLP_TC_rig) * DX)**2&
+!                                   +((rjg - MSLP_TC_rjg) * DY)**2)
+
+!                if(dist_MSLP_TC <= dist_MSLP_TC_MIN)then
+!                  obsda%qc(nn) = iqc_obs_bad
+!                endif
+
+! -- Rejecting Himawari-8 obs over the buffer regions. --
+                if((rig <= bris) .or. (rig >= brie) .or.&
+                   (rjg <= brjs) .or. (rjg >= brje))then
+                  obsda%qc(nn) = iqc_obs_bad
+                endif
+              endif
+
+!
+!  NOTE: T.Honda (10/16/2015)
+!  The original H08 obs does not inlcude the level information.
+!  However, we have the level information derived by RTTOV (plev_obs_H08) here, 
+!  so that we substitute the level information into obsda%lev.  
+!  The substituted level information is used in letkf_tools.f90
+!
+              obsda%lev(nn) = plev_obs_H08(ns)
+              obsda%val2(nn) = yobs_H08_clr(ns)
+
+!              write(6,'(a,f12.1,i9)')'H08 debug_plev',obsda%lev(nn),nn
+
+            END DO ! [ nn = nobs_0 + 1, nobs ]
+
+            DEALLOCATE(ri_H08, rj_H08)
+            DEALLOCATE(lon_H08, lat_H08)
+            DEALLOCATE(yobs_H08, plev_obs_H08)
+            DEALLOCATE(yobs_H08_clr)
+            DEALLOCATE(qc_H08)
+
+            !------
+            end if ! [.not. USE_OBS(23)]
+            !------
+
+          ENDIF  ! (OBS_IN_FORMAT(iof) == obsfmt_h08vt).and.(nprof_H08vt >=1)
 
 ! ###  -- TC vital assimilation -- ###
 !          if (obs_idx_TCX > 0 .and. obs_idx_TCY > 0 .and. obs_idx_TCP > 0) then
