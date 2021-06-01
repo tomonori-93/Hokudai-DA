@@ -3280,7 +3280,7 @@ END SUBROUTINE write_obs_H08
 !         1: staggered grid
 !-----------------------------------------------------------------------
 SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
-  &                         rig,rjg,v3d,v2d,yobs,qc,stggrd,cent_flag)
+  &                         rig,rjg,v3d,v2d,cent_flag,yobs,qc,stggrd)
   use scale_mapproj, only: &
       MPRJ_rotcoef
   use scale_grid_index, only: &
@@ -3295,9 +3295,9 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   REAL(r_size),INTENT(IN) :: rjg(nlath)  ! grid number for model variables in global domain
   REAL(r_size),INTENT(IN) :: v3d(nlevh,nlonh,nlath,nv3dd)  ! 3d model variables
   REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)  ! 2d model variables
-  REAL(r_size),INTENT(OUT) :: yobs(nprof)  ! H(x)
   CHARACTER(3),INTENT(IN) :: cent_flag  ! Flag of the storm center in the model
                                         ! 'cal' = calculation from the slp, 'obs' = use of r{i,j}g_tcobs
+  REAL(r_size),INTENT(OUT) :: yobs(nprof)  ! H(x)
   INTEGER,INTENT(OUT) :: qc(nprof)
   INTEGER,INTENT(IN),OPTIONAL :: stggrd
   INTEGER :: ii, jj, m
