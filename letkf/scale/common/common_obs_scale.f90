@@ -3280,7 +3280,7 @@ END SUBROUTINE write_obs_H08
 !         1: staggered grid
 !-----------------------------------------------------------------------
 SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
-  &                         rig,rjg,v3d,v2d,yobs,qc,stggrd)
+  &                         rig,rjg,v3d,v2d,yobs,qc,stggrd,cent_flag)
   use scale_mapproj, only: &
       MPRJ_rotcoef
   use scale_grid_index, only: &
@@ -3296,6 +3296,8 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   REAL(r_size),INTENT(IN) :: v3d(nlevh,nlonh,nlath,nv3dd)  ! 3d model variables
   REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)  ! 2d model variables
   REAL(r_size),INTENT(OUT) :: yobs(nprof)  ! H(x)
+  CHARACTER(3),INTENT(IN) :: cent_flag  ! Flag of the storm center in the model
+                                        ! 'cal' = calculation from the slp, 'obs' = use of r{i,j}g_tcobs
   INTEGER,INTENT(OUT) :: qc(nprof)
   INTEGER,INTENT(IN),OPTIONAL :: stggrd
   INTEGER :: ii, jj, m
@@ -3342,36 +3344,44 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 !(no need)    end if
 !-- under construction (to here)
 
-!-- (Process 1: Determine the storm center based on the SLP)
-!-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
+!-- (Process 1: Determine the storm center based on the SLP if cent_flag = 'cal')
 
-  do jj=1,nlat
-     do ii=1,nlon
-        CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
-        CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
-        CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
-        CALL itpl_2d(v2d(:,:,iv2dd_ps),ri,rj,slp2d(ii,jj))
-        CALL prsadj(slp2d(ii,jj),-1.0d0*topo,t,q)
+  if (cent_flag(1:3)=='cal') then
+  !-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
+     do jj=1,nlat
+        do ii=1,nlon
+           CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
+           CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
+           CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
+           CALL itpl_2d(v2d(:,:,iv2dd_ps),ri,rj,slp2d(ii,jj))
+           CALL prsadj(slp2d(ii,jj),-1.0d0*topo,t,q)
+        end do
      end do
-  end do
 
-!-- 2. gather slp2d in each local domain to slp2dg in global domain
-!--    (the rank to which the storm center (rig_tcobs,rjg_tcobs) belongs)
+  !-- 2. gather slp2d in each local domain to slp2dg in global domain
+  !--    (the rank to which the storm center (rig_tcobs,rjg_tcobs) belongs)
 
-  call MPI_Barrier()
-  call MPI_Gather()  ! rank(0-M) -> rankm
+     call MPI_Barrier()
+     call MPI_Gather()  ! rank(0-M) -> rankm
 
-!-- 3. determine the storm center in the model simulation on only rankm
-!--    (slp2dg -> rig_tc,rjg_tc)
+  !-- 3. determine the storm center in the model simulation on only rankm
+  !--    (slp2dg -> rig_tc,rjg_tc)
 
-  call MPI_Barrier()
-  if(my_rank==m)then
-     call DC_Braun()
+     call MPI_Barrier()
+     if(my_rank==m)then
+        call DC_Braun()
+     end if
+
+  !-- 4. broadcast (rig_tc,rjg_tc)
+     call MPI_Barrier()
+     call MPI_Bcast()  ! rankm -> rank(0-M)
+
+  else  ! cent_flag(1:3) == 'obs'
+
+     rig_tc=rig_tcobs
+     rjg_tc=rjg_tcobs
+
   end if
-
-!-- 4. broadcast (rig_tc,rjg_tc)
-  call MPI_Barrier()
-  call MPI_Bcast()  ! rankm -> rank(0-M)
 
   do ii=1,nprof
 
@@ -3485,7 +3495,7 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   call MPI_Barrier()
   call MPI_Bcast()
 
-!-- Finish (not need below)
+!-- Finish (not need below) ---
 
 !  CASE(id_rain_obs) ! RAIN                        ############# (not finished)
 !    CALL itpl_2d(v2d(:,:,iv2dd_rain),ri,rj,yobs) !#############
@@ -3618,52 +3628,6 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   slev = 1 + KHALO
   elev = nlevh - KHALO
 
-!  CALL SCALE_RTTOV_fwd(nch, & ! num of channels
-!                       nlev,& ! num of levels
-!                       nprof,& ! num of profs
-!                       prs2d(elev:slev:-1,1:nprof),& ! (Pa)
-!                       tk2d(elev:slev:-1,1:nprof),& ! (K)
-!                       qv2d(elev:slev:-1,1:nprof),& ! (kg/kg)
-!                       qliq2d(elev:slev:-1,1:nprof),& ! (kg/kg)
-!                       qice2d(elev:slev:-1,1:nprof),& ! (kg/kg)
-!                       tsfc1d(1:nprof),& ! (K)
-!                       qsfc1d(1:nprof),& ! (kg/kg)
-!                       psfc1d(1:nprof),& ! (Pa)
-!                       usfc1d(1:nprof),& ! (m/s)
-!                       vsfc1d(1:nprof),& ! (m/s)
-!                       topo1d(1:nprof),& ! (m)
-!                       lon1d(1:nprof),& ! (deg)
-!                       lat1d(1:nprof),& ! (deg)
-!                       lsmask1d(1:nprof),& ! (0-1)
-!                       btall_out(1:nch,1:nprof),& ! (K)
-!                       btclr_out(1:nch,1:nprof),& ! (K)
-!                       trans_out(nlev:1:-1,1:nch,1:nprof))
-!
-! -- Compute max weight level using trans_out 
-! -- (Transmittance from each user pressure level to Top Of the Atmosphere)
-! -- btall_out is substituted into yobs
-
-  n = 0
-  DO np = 1, nprof
-  DO ch = 1, nch
-    n = n + 1
-
-    rdp = 1.0d0 / (prs2d(slev+1,np) - prs2d(slev,np))
-    max_weight(ch,np) = abs((trans_out(2,ch,np) - trans_out(1,ch,np)) * rdp )
-
-
-    plev_obs(n) = (prs2d(slev+1,np) + prs2d(slev,np)) * 0.5d0 ! (Pa)
-
-    DO k = 2, nlev-1
-
-      rdp = 1.0d0 / abs(prs2d(slev+k,np) - prs2d(slev+k-1,np))
-      tmp_weight = (trans_out(k+1,ch,np) - trans_out(k,ch,np)) * rdp 
-      if(tmp_weight > max_weight(ch,np))then
-        max_weight(ch,np) = tmp_weight
-        plev_obs(n) = (prs2d(slev+k,np) + prs2d(slev+k-1,np)) * 0.5d0 ! (Pa)
-      endif
-    ENDDO
-
     yobs(n) = btall_out(ch,np)
 !
 ! ## comment out by T.Honda (02/09/2016)
@@ -3684,19 +3648,6 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
     IF(H08_REJECT_LAND .and. (lsmask1d(np) > 0.5d0))THEN
       qc(n) = iqc_obs_bad
     ENDIF
-
-    IF(abs(btall_out(ch,np) - btclr_out(ch,np)) > H08_CLDSKY_THRS)THEN
-! Cloudy sky
-      yobs(n) = yobs(n) * (-1.0d0)
-    ELSE
-! Clear sky
-      yobs(n) = yobs(n) * 1.0d0
-    ENDIF
-   
-    yobs_H08_clr(n) = btclr_out(ch,np)
-
-  ENDDO ! ch
-  ENDDO ! np
 
   RETURN
 END SUBROUTINE Trans_XtoY_H08VT
