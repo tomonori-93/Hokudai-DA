@@ -3283,6 +3283,8 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   &                         rig,rjg,v3d,v2d,yobs,qc,stggrd)
   use scale_mapproj, only: &
       MPRJ_rotcoef
+  use scale_grid_index, only: &
+      KHALO
   IMPLICIT NONE
   INTEGER,INTENT(in) :: nprof  ! observation number for Vt observation
   REAL(r_size),INTENT(IN) :: rig_tcobs(nprof),rjg_tcobs(nprof)  ! the first guess location for the storm center (lon,lat) in global domain
@@ -3308,8 +3310,8 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   REAL(r_size) :: xi,yj                 ! rotating operators for calculating Vt from u,v
   REAL(r_size) :: a,b                   ! ratios for the bilinear interpolation from the four points to (rad(ii),theta)
   REAL(r_size),ALLOCATABLE :: Vtb(:)    ! vertical average of Vt(theta) at a radius
-  REAL(r_size) :: Vtb_sec(n_procs)      ! azimuthal average in a sector (i.e., a MPI rank) of Vtb(theta) at a radius
-  REAL(r_size) :: u(2,2),v(2,2),Vt(2,2) ! vertical averages of U, V, and Vt at the four points in which is located near (rad(ii),theta)
+  REAL(r_size) :: Vtb_sec(n_procs)      ! azimuthal average in a sector (i.e., a MPI rank) of Vtb(theta) at rad(ii)
+  REAL(r_size) :: u(2,2),v(2,2),Vt(2,2) ! vertical averages of U, V, and Vt at which the four points are located near (rad(ii),theta)
   REAL(r_size) :: slp2d(nlon,nlat)      ! 2d variable in local domain
   REAL(r_size) :: slp2dg(nglon,nglat)   ! 2d variable in global domain
   REAL(r_size) :: t,q,topo              ! temporary variables for calculating slp from ps
@@ -3321,6 +3323,24 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 
   yobs = undef
   qc = iqc_good
+
+!-- under construction (from here)
+  if (stggrd_ == 1) then  ! change u and v from vector points to scalar points
+    CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri-0.5_r_size,rj,u)  !###### should modity itpl_3d to prevent '1.0' problem....??
+    CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj-0.5_r_size,v)  !######
+  else
+    CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri,rj,u)
+    CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj,v)
+  end if
+
+! Calculation on Cartesian coordinates
+!(no need)    call MPRJ_rotcoef(rotc,lon*deg2rad,lat*deg2rad)
+!(no need)    if (elm == id_u_obs) then
+!(no need)      yobs = u * rotc(1) - v * rotc(2)
+!(no need)    else
+!(no need)      yobs = u * rotc(2) + v * rotc(1)
+!(no need)    end if
+!-- under construction (to here)
 
 !-- (Process 1: Determine the storm center based on the SLP)
 !-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
@@ -3449,11 +3469,6 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
         yobs(ii)=yobs(ii)/real(ntheta)
      end if
 
-  !-- 13. broadcast yobs(ii) at rad(ii)
-
-     call MPI_Barrier()
-     call MPI_Bcast()
-
      if(i_Vtb_sec(my_rank)==1)then
         qc(ii)=iqc_good  ! No check
      else
@@ -3465,44 +3480,13 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 
   end do  ! ii=1,nprof
 
+!-- 13. broadcast yobs and qc at all radii (rad(1:nprof))
+
+  call MPI_Barrier()
+  call MPI_Bcast()
+
 !-- Finish (not need below)
 
-  SELECT CASE (elm)
-  CASE(id_u_obs,id_v_obs)  ! U,V
-    if (stggrd_ == 1) then  ! change u and v from vector points to scalar points
-      CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri-0.5_r_size,rj,u)  !###### should modity itpl_3d to prevent '1.0' problem....??
-      CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj-0.5_r_size,v)  !######
-    else
-      CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri,rj,u)
-      CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj,v)
-    end if
-! Calculation on Cartesian coordinates
-!(no need)    call MPRJ_rotcoef(rotc,lon*deg2rad,lat*deg2rad)
-!(no need)    if (elm == id_u_obs) then
-!(no need)      yobs = u * rotc(1) - v * rotc(2)
-!(no need)    else
-!(no need)      yobs = u * rotc(2) + v * rotc(1)
-!(no need)    end if
-  CASE(id_t_obs)  ! T
-    CALL itpl_3d(v3d(:,:,:,iv3dd_t),rk,ri,rj,yobs)
-  CASE(id_tv_obs)  ! Tv
-    CALL itpl_3d(v3d(:,:,:,iv3dd_t),rk,ri,rj,yobs)
-    CALL itpl_3d(v3d(:,:,:,iv3dd_q),rk,ri,rj,q)
-    yobs = yobs * (1.0d0 + fvirt * q)
-  CASE(id_q_obs)  ! Q
-    CALL itpl_3d(v3d(:,:,:,iv3dd_q),rk,ri,rj,yobs)
-  CASE(id_ps_obs) ! PS
-    CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
-    CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
-    CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
-    CALL itpl_2d(v2d(:,:,iv2dd_ps),ri,rj,yobs)
-    call prsadj(yobs,rk-topo,t,q)
-    if (abs(rk-topo) > PS_ADJUST_THRES) then
-      if (LOG_LEVEL >= 2) then
-        write (6,'(A,F6.1)') '[Warning] PS observation height adjustment exceeds the threshold. dz=', abs(rk-topo)
-      end if
-      qc = iqc_ps_ter
-    end if
 !  CASE(id_rain_obs) ! RAIN                        ############# (not finished)
 !    CALL itpl_2d(v2d(:,:,iv2dd_rain),ri,rj,yobs) !#############
   CASE(id_rh_obs) ! RH
@@ -3732,7 +3716,7 @@ END SUBROUTINE Trans_XtoY_H08VT
 !     (6)  top height (m) for vertical average
 !     (7)  observation value (m/s)
 !     (8)  observation error (unit same as observation value)
-!     (9)  observation platform type (1..nobtype+1; see 'obtypelist' array)
+!     (9)  observation platform type (1..nobtype+1; see 'obtypelist' array) (not need)
 !     (10) observation time relative to analysis time (sec)
 !-----------------------------------------------------------------------
 
