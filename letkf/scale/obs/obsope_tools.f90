@@ -713,36 +713,28 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
               lon_H08vt = tmp_lon_H08vt(1:nprof_H08vt)
               lat_H08vt = tmp_lat_H08vt(1:nprof_H08vt)
 
-            ENDIF
-
-            DEALLOCATE(tmp_ri_H08vt,tmp_rj_H08vt)
-            DEALLOCATE(tmp_lon_H08vt,tmp_lat_H08vt)
-
             !------
-            if (.not. USE_OBS(23)) then
-              obsda%qc(nobs_0+1:nobs) = iqc_otype
-            else
+              if (.not. USE_OBS(23)) then
+                obsda%qc(nobs_0+1:nobs) = iqc_otype
+              else
             !------
 
-            ALLOCATE(yobs_H08vt(nprof_H08vt))
-            ALLOCATE(qc_H08vt(nprof_H08vt))
+              ALLOCATE(yobs_H08vt(nprof_H08vt))
+              ALLOCATE(qc_H08vt(nprof_H08vt))
 
-            CALL Trans_XtoY_H08VT(nprof_H08vt,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
-  &                               rig,rjg,v3d,v2d,cent_flag,yobs_H08vt,qc_H08vt,stggrd)
+              CALL Trans_XtoY_H08VT(nprof_H08vt,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
+  &                                 rig,rjg,v3d,v2d,cent_flag,yobs_H08vt,qc_H08vt,stggrd)
 
-! Clear sky yobs(>0)
-! Cloudy sky yobs(<0)
+              obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
 
-            obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
+              ns = 0
+              DO nn = nobs_0 + 1, nobs
+                ns = ns + 1
 
-            ns = 0
-            DO nn = nobs_0 + 1, nobs
-              ns = ns + 1
+                obsda%val(nn) = yobs_H08(ns)
+                obsda%qc(nn) = qc_H08(ns)
 
-              obsda%val(nn) = yobs_H08(ns)
-              obsda%qc(nn) = qc_H08(ns)
-
-              if(obsda%qc(nn) == iqc_good)then
+                if(obsda%qc(nn) == iqc_good)then
 !!!!!!                rig = obsda%ri(nn)
 !!!!!!                rjg = obsda%rj(nn)
 
@@ -755,31 +747,29 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 !                endif
 
 ! -- Rejecting Himawari-8 obs over the buffer regions. --
-                if((rig <= bris) .or. (rig >= brie) .or.&
-                   (rjg <= brjs) .or. (rjg >= brje))then
-                  obsda%qc(nn) = iqc_obs_bad
+                  if((rig <= bris) .or. (rig >= brie) .or.&
+                     (rjg <= brjs) .or. (rjg >= brje))then
+                    obsda%qc(nn) = iqc_obs_bad
+                  endif
                 endif
-              endif
 
 !
-!  NOTE: T.Honda (10/16/2015)
-!  The original H08 obs does not inlcude the level information.
-!  However, we have the level information derived by RTTOV (plev_obs_H08) here, 
-!  so that we substitute the level information into obsda%lev.  
-!  The substituted level information is used in letkf_tools.f90
-!
-              obsda%lev(nn) = plev_obs_H08(ns)
-              obsda%val2(nn) = yobs_H08_clr(ns)
+                obsda%lev(nn) = plev_obs_H08(ns)
+                obsda%val2(nn) = yobs_H08_clr(ns)
 
 !              write(6,'(a,f12.1,i9)')'H08 debug_plev',obsda%lev(nn),nn
 
-            END DO ! [ nn = nobs_0 + 1, nobs ]
+              END DO ! [ nn = nobs_0 + 1, nobs ]
 
-            DEALLOCATE(ri_H08, rj_H08)
-            DEALLOCATE(lon_H08, lat_H08)
-            DEALLOCATE(yobs_H08, plev_obs_H08)
-            DEALLOCATE(yobs_H08_clr)
-            DEALLOCATE(qc_H08)
+            ENDIF
+
+            DEALLOCATE(tmp_ri_H08vt,tmp_rj_H08vt)
+            DEALLOCATE(tmp_lon_H08vt,tmp_lat_H08vt)
+
+            DEALLOCATE(ri_H08vt, rj_H08vt)
+            DEALLOCATE(lon_H08vt, lat_H08vt)
+            DEALLOCATE(yobs_H08vt, plev_obs_H08)
+            DEALLOCATE(qc_H08vt)
 
             !------
             end if ! [.not. USE_OBS(23)]
