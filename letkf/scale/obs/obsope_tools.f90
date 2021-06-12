@@ -665,7 +665,6 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 
           !---------------------------------------------------------------------
           ! Calculate H(x) for H08VT (Added by Satoki Tsujino)
-          ! [Under construction]
           !---------------------------------------------------------------------
           IF(OBS_IN_FORMAT(iof) == obsfmt_h08vt)THEN
             nprof_H08vt = 0
@@ -675,6 +674,9 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
             ALLOCATE(tmp_rj_H08vt(nallprof))
             ALLOCATE(tmp_lon_H08vt(nallprof))
             ALLOCATE(tmp_lat_H08vt(nallprof))
+            ALLOCATE(tmp_rad_H08vt(nallprof))
+            ALLOCATE(tmp_lev_H08vt(nallprof))
+            ALLOCATE(tmp_lev2_H08vt(nallprof))
 
             do n = 1, nallprof
               if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
@@ -687,16 +689,15 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
                   tmp_rj_H08vt(nprof_H08vt) = rjg
                   tmp_lon_H08vt(nprof_H08vt) = obs(iof)%lon(n)
                   tmp_lat_H08vt(nprof_H08vt) = obs(iof)%lat(n)
+                  tmp_rad_H08vt(nprof_H08vt) = obs(iof)%rad(n)
+                  tmp_lev_H08vt(nprof_H08vt) = obs(iof)%lev(n)
+                  tmp_lev2_H08vt(nprof_H08vt) = obs(iof)%lev2(n)
 
 !                  nobs_slot = nobs_slot + 1
-                  obsda%set(nobs-nch+1:nobs) = iof
-                  obsda%ri(nobs-nch+1:nobs) = rig
-                  obsda%rj(nobs-nch+1:nobs) = rjg
-                  ri(nobs-nch+1:nobs) = rig
-                  rj(nobs-nch+1:nobs) = rjg
-                  do ch = 1, nch
-                    obsda%idx(nobs-nch+ch) = ns + ch - 1
-                  enddo
+                  obsda%set(nprof_H08vt) = iof
+                  obsda%ri(nprof_H08vt) = rig
+                  obsda%rj(nprof_H08vt) = rjg
+                  obsda%idx(nprof_H08vt) = n  ! No check
 
                 end if ! [ myrank_d == proc ]
               end if ! [ obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot) ]
@@ -707,25 +708,32 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
               ALLOCATE(rj_H08vt(nprof_H08vt))
               ALLOCATE(lon_H08vt(nprof_H08vt))
               ALLOCATE(lat_H08vt(nprof_H08vt))
+              ALLOCATE(rad_H08vt(nprof_H08vt))
+              ALLOCATE(lev_H08vt(nprof_H08vt))
+              ALLOCATE(lev2_H08vt(nprof_H08vt))
 
               ri_H08vt = tmp_ri_H08vt(1:nprof_H08vt)
               rj_H08vt = tmp_rj_H08vt(1:nprof_H08vt)
               lon_H08vt = tmp_lon_H08vt(1:nprof_H08vt)
               lat_H08vt = tmp_lat_H08vt(1:nprof_H08vt)
+              rad_H08vt = tmp_rad_H08vt(1:nprof_H08vt)
+              lev_H08vt = tmp_lev_H08vt(1:nprof_H08vt)
+              lev2_H08vt = tmp_lev2_H08vt(1:nprof_H08vt)
 
             !------
-              if (.not. USE_OBS(23)) then
-                obsda%qc(nobs_0+1:nobs) = iqc_otype
-              else
+!              if (.not. USE_OBS(23)) then
+!                obsda%qc(nobs_0+1:nobs) = iqc_otype
+!              else
             !------
 
               ALLOCATE(yobs_H08vt(nprof_H08vt))
               ALLOCATE(qc_H08vt(nprof_H08vt))
 
-              CALL Trans_XtoY_H08VT(nprof_H08vt,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
-  &                                 rig,rjg,v3d,v2d,cent_flag,yobs_H08vt,qc_H08vt,stggrd)
+              CALL Trans_XtoY_H08VT(nprof_H08vt,rig_tcobs,rjg_tcobs,lev_H08vt,lev2_H08vt,  &
+  &                                 lon_H08vt,lat_H08vt,rad_H08vt,ri_H08vt,rj_H08vt,  &
+  &                                 v3d,v2d,cent_flag,yobs_H08vt,qc_H08vt,stggrd)
 
-              obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
+!              obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
 
               ns = 0
               DO nn = nobs_0 + 1, nobs
@@ -761,18 +769,25 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 
               END DO ! [ nn = nobs_0 + 1, nobs ]
 
+              DEALLOCATE(ri_H08vt,rj_H08vt)
+              DEALLOCATE(lon_H08vt,lat_H08vt)
+              DEALLOCATE(rad_H08vt)
+              DEALLOCATE(lev_H08vt,lev2_H08vt)
+
             ENDIF
 
             DEALLOCATE(tmp_ri_H08vt,tmp_rj_H08vt)
             DEALLOCATE(tmp_lon_H08vt,tmp_lat_H08vt)
+            DEALLOCATE(tmp_rad_H08vt)
+            DEALLOCATE(tmp_lev_H08vt,tmp_lev2_H08vt)
 
-            DEALLOCATE(ri_H08vt, rj_H08vt)
-            DEALLOCATE(lon_H08vt, lat_H08vt)
-            DEALLOCATE(yobs_H08vt, plev_obs_H08)
+            DEALLOCATE(ri_H08vt,rj_H08vt)
+            DEALLOCATE(lon_H08vt,lat_H08vt)
+            DEALLOCATE(yobs_H08vt)
             DEALLOCATE(qc_H08vt)
 
             !------
-            end if ! [.not. USE_OBS(23)]
+!            end if ! [.not. USE_OBS(23)]
             !------
 
           ENDIF  ! (OBS_IN_FORMAT(iof) == obsfmt_h08vt).and.(nprof_H08vt >=1)
