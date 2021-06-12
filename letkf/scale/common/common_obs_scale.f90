@@ -3304,7 +3304,7 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   INTEGER :: ntheta                     ! sampling number for azimuthal direction at a radius
   INTEGER :: i_rigm,j_rjgm              ! floor(rig_rt),floor(rjg_rt)
   INTEGER,ALLOCATABLE :: i_Vtb(:)       ! variable for counting avairable points
-  INTEGER :: i_Vtb_sec(n_procs)         ! variable for counting avairable points in each MPI rank
+  INTEGER :: i_Vtb_sec(nprocs_e)        ! variable for counting avairable points in each MPI rank
   REAL(r_size) :: r_inv                 ! inversion of rad(ii)
   REAL(r_size) :: theta                 ! azimuthal angle (rad)
   REAL(r_size) :: rig_rt,rjg_rt         ! rig and rjg at a certain point (rad(ii),theta)
@@ -3312,7 +3312,7 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   REAL(r_size) :: xi,yj                 ! rotating operators for calculating Vt from u,v
   REAL(r_size) :: a,b                   ! ratios for the bilinear interpolation from the four points to (rad(ii),theta)
   REAL(r_size),ALLOCATABLE :: Vtb(:)    ! vertical average of Vt(theta) at a radius
-  REAL(r_size) :: Vtb_sec(n_procs)      ! azimuthal average in a sector (i.e., a MPI rank) of Vtb(theta) at rad(ii)
+  REAL(r_size) :: Vtb_sec               ! azimuthal average in a sector (i.e., a MPI rank) of Vtb(theta) at rad(ii)
   REAL(r_size) :: u(2,2),v(2,2),Vt(2,2) ! vertical averages of U, V, and Vt at which the four points are located near (rad(ii),theta)
   REAL(r_size) :: slp2d(nlon,nlat)      ! 2d variable in local domain
   REAL(r_size) :: slp2dg(nglon,nglat)   ! 2d variable in global domain
@@ -3349,7 +3349,7 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   !-- (Process 1: Determine the storm center based on the SLP if cent_flag = 'cal')
 
      if (cent_flag(1:3)=='cal') then
-     write(*,*) "Under construction..."
+        write(*,*) "Under construction..."
 !     !-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
 !       do jj=1,nlat
 !          do ii=1,nlon
@@ -3415,7 +3415,7 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
         call rgrt_floor( nlonh, nlath, rig_rt, rjg_rt,  &
   &                      rig, rjg, i_rigm, j_rjgm, rigm, rjgm )
 
-        if(i_rigm==0)then  ! point [rad(ii), theta] is outside the domain
+        if((i_rigm==0).or(j_rjgm==0))then  ! point [rad(ii), theta] is outside the domain
            cycle
         end if
 
@@ -3464,37 +3464,31 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 
   !-- 10. make azimuthal average Vtb_sec (sector range) of Vtb at rad(ii)
 
-     call azim_sum( ntheta, Vtb, i_Vtb, Vtb_sec(my_rank), ic=i_Vtb_sec(my_rank) )
+     call azim_sum( ntheta, Vtb, i_Vtb, Vtb_sec )
 
-  !-- 11. gather Vtb_sec (and i_Vtb_sec) in each rank to Vtbg_sec in rankm
-  !--    (rankm includes the storm center (rig_tcobs,rjg_tcobs))
-
-     call MPI_Barrier()
-     call MPI_Gather()  ! rank(0-M) -> rankm
-
+  !-- 11. Gather Vtb_sec (and i_Vtb_sec) in each rank to Vtbg_sec in rankm
+  !--     (rankm includes the storm center (rig_tcobs,rjg_tcobs))
   !-- 12. make average of Vtb_sec in each sector at rad(ii)
+  !-- 13. Broadcast the results to all MPI ranks
+  !-- [Note]: These procedures are coupled by MPI_ALLREDUCE
 
-     call MPI_Barrier()
-     if(my_rank==m)then
-        call azim_sum( n_procs, Vtb_sec, i_Vtb_sec, yobs(ii) )
-        yobs(ii)=yobs(ii)/real(ntheta)
-     end if
+     call MPI_Barrier(MPI_COMM_e,ierr)
+     call MPI_AllReduce(Vtb_sec,yobs(ii),MPI_r_size,MPI_SUM,MPI_COMM_e,ierr)  ! sum[rank(0-M)] -> rank(0-M)
+!     call azim_sum( nprocs_e, Vtb_sec, i_Vtb_sec, yobs(ii) )
+     yobs(ii)=yobs(ii)/real(ntheta)
 
-     if(i_Vtb_sec(my_rank)==1)then
+!     if(i_Vtb_sec(my_rank)==1)then
         qc(ii)=iqc_good  ! No check
-     else
-        qc(ii)=iqc_obs_bad  ! Not include in this rank
-     end if
+!     else
+!        qc(ii)=iqc_obs_bad  ! Not include in this rank
+!     end if
 
      deallocate(Vtb)
      deallocate(i_Vtb)
 
+     call MPI_Barrier(MPI_COMM_e,ierr)
+
   end do  ! ii=1,nprof
-
-!-- 13. broadcast yobs and qc at all radii (rad(1:nprof))
-
-  call MPI_Barrier()
-  call MPI_Bcast()
 
   RETURN
 END SUBROUTINE Trans_XtoY_H08VT
