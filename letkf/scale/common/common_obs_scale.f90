@@ -3344,46 +3344,47 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 !(no need)    end if
 !-- under construction (to here)
 
-!-- (Process 1: Determine the storm center based on the SLP if cent_flag = 'cal')
-
-  if (cent_flag(1:3)=='cal') then
-  !-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
-     do jj=1,nlat
-        do ii=1,nlon
-           CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
-           CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
-           CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
-           CALL itpl_2d(v2d(:,:,iv2dd_ps),ri,rj,slp2d(ii,jj))
-           CALL prsadj(slp2d(ii,jj),-1.0d0*topo,t,q)
-        end do
-     end do
-
-  !-- 2. gather slp2d in each local domain to slp2dg in global domain
-  !--    (the rank to which the storm center (rig_tcobs,rjg_tcobs) belongs)
-
-     call MPI_Barrier()
-     call MPI_Gather()  ! rank(0-M) -> rankm
-
-  !-- 3. determine the storm center in the model simulation on only rankm
-  !--    (slp2dg -> rig_tc,rjg_tc)
-
-     call MPI_Barrier()
-     if(my_rank==m)then
-        call DC_Braun()
-     end if
-
-  !-- 4. broadcast (rig_tc,rjg_tc)
-     call MPI_Barrier()
-     call MPI_Bcast()  ! rankm -> rank(0-M)
-
-  else  ! cent_flag(1:3) == 'obs'
-
-     rig_tc=rig_tcobs
-     rjg_tc=rjg_tcobs
-
-  end if
-
   do ii=1,nprof
+
+  !-- (Process 1: Determine the storm center based on the SLP if cent_flag = 'cal')
+
+     if (cent_flag(1:3)=='cal') then
+     write(*,*) "Under construction..."
+!     !-- 1. convert surface pressure (v2d(:,:,iv2dd_ps)) to sea level pressure
+!       do jj=1,nlat
+!          do ii=1,nlon
+!             CALL itpl_2d(v2d(:,:,iv2dd_t2m),ri,rj,t)
+!             CALL itpl_2d(v2d(:,:,iv2dd_q2m),ri,rj,q)
+!             CALL itpl_2d(v2d(:,:,iv2dd_topo),ri,rj,topo)
+!             CALL itpl_2d(v2d(:,:,iv2dd_ps),ri,rj,slp2d(ii,jj))
+!             CALL prsadj(slp2d(ii,jj),-1.0d0*topo,t,q)
+!          end do
+!       end do
+!
+!    !-- 2. gather slp2d in each local domain to slp2dg in global domain
+!    !--    (the rank to which the storm center (rig_tcobs,rjg_tcobs) belongs)
+!
+!       call MPI_Barrier()
+!       call MPI_Gather()  ! rank(0-M) -> rankm
+!
+!    !-- 3. determine the storm center in the model simulation on only rankm
+!    !--    (slp2dg -> rig_tc,rjg_tc)
+!
+!       call MPI_Barrier()
+!       if(my_rank==m)then
+!          call DC_Braun()
+!       end if
+!
+!    !-- 4. broadcast (rig_tc,rjg_tc)
+!       call MPI_Barrier()
+!       call MPI_Bcast()  ! rankm -> rank(0-M)
+!
+     else  ! cent_flag(1:3) == 'obs'
+
+       rig_tc=rig_tcobs(ii)
+       rjg_tc=rjg_tcobs(ii)
+
+     end if
 
      r_inv=1.0d0/rad(ii)
 
