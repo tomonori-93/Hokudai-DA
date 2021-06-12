@@ -101,6 +101,18 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   INTEGER :: ch
   INTEGER,ALLOCATABLE :: qc_H08(:)
 
+! -- for Himawari-8 obs --
+  INTEGER :: nprof_H08vt ! num of H08vt obs
+  REAL(r_size),ALLOCATABLE :: ri_H08vt(:),rj_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: lon_H08vt(:),lat_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: lev_H08vt(:),lev2_H08vt(:),rad_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: tmp_ri_H08vt(:),tmp_rj_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: tmp_lon_H08vt(:),tmp_lat_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: tmp_lev_H08vt(:),tmp_lev2_H08vt(:),tmp_rad_H08vt(:)
+
+  REAL(r_size),ALLOCATABLE :: yobs_H08vt(:)
+  INTEGER,ALLOCATABLE :: qc_H08vt(:)
+
 ! -- Rejecting obs over the buffer regions. --
 !
 ! bris: "ri" at the wetern end of the domain excluding buffer regions
@@ -729,9 +741,9 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
               ALLOCATE(yobs_H08vt(nprof_H08vt))
               ALLOCATE(qc_H08vt(nprof_H08vt))
 
-              CALL Trans_XtoY_H08VT(nprof_H08vt,rig_tcobs,rjg_tcobs,lev_H08vt,lev2_H08vt,  &
+              CALL Trans_XtoY_H08VT(nprof_H08vt,ri_H08vt,rj_H08vt,lev_H08vt,lev2_H08vt,  &
   &                                 lon_H08vt,lat_H08vt,rad_H08vt,ri_H08vt,rj_H08vt,  &
-  &                                 v3d,v2d,cent_flag,yobs_H08vt,qc_H08vt,stggrd)
+  &                                 v3d,v2d,'obs',yobs_H08vt,qc_H08vt,stggrd)
 
 !              obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
 
