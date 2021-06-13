@@ -72,6 +72,10 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 
   real(r_size), allocatable :: v3dg(:,:,:,:)
   real(r_size), allocatable :: v2dg(:,:,:)
+  real(r_size), allocatable :: rigu(:)  ! rig for u grid (Add by satoki)
+  real(r_size), allocatable :: rigv(:)  ! rig for v grid (Add by satoki)
+  real(r_size), allocatable :: rigu(:)  ! rjg for u grid (Add by satoki)
+  real(r_size), allocatable :: rigv(:)  ! rjg for v grid (Add by satoki)
 
   integer, allocatable :: qc_p(:)
 #ifdef H08
@@ -416,6 +420,10 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 
   allocate ( v3dg (nlevh,nlonh,nlath,nv3dd) )
   allocate ( v2dg (nlonh,nlath,nv2dd) )
+  allocate ( rigu (nlonh) )  ! Add by satoki
+  allocate ( rigv (nlonh) )  ! Add by satoki
+  allocate ( rjgu (nlath) )  ! Add by satoki
+  allocate ( rjgv (nlath) )  ! Add by satoki
 
   do it = 1, nitmax
     im = myrank_to_mem(it)
@@ -468,7 +476,9 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
         call mpi_timer('', 2)
 
         ! Reading ens. output from SCALE (Comment by satoki)
-        call read_ens_history_iter(it, islot, v3dg, v2dg)
+!(ORG: by satoki)        call read_ens_history_iter(it, islot, v3dg, v2dg)
+        call read_ens_history_iter(it, islot, v3dg, v2dg,  &
+  &                                rigu=rigu, rigv=rigv, rjgu=rjgu, rjgv=rjgv)
 
         write (timer_str, '(A30,I4,A7,I4,A2)') 'obsope_cal:read_ens_history(t=', it, ', slot=', islot, '):'
         call mpi_timer(trim(timer_str), 2)
@@ -912,6 +922,7 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
   end do ! [ it = 1, nitmax ]
 
   deallocate ( v3dg, v2dg )
+  deallocate ( rigu, rigv, rjgu, rjgv )  ! Add by satoki
   deallocate ( bsn, bsna )
   call obs_da_value_deallocate(obsda)
 
