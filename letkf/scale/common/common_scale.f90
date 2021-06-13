@@ -100,7 +100,7 @@ MODULE common_scale
 #endif
 !-- Added by satoki for rijg
   CHARACTER(vname_max),PARAMETER :: rijg_name(4) = &
-     (/'CX', 'FX', CY', 'FY'/)  ! rigu, rigv, rjgu, rjgv
+     (/'CX', 'FX', 'CY', 'FY'/)  ! rigu, rigv, rjgu, rjgv
 
   ! 
   !--- Variables for model coordinates
@@ -912,6 +912,9 @@ subroutine read_history(filename,step,v3dg,v2dg,rigu,rigv,rjgu,rjgv)
   use scale_grid_index, only: &
       IHALO, JHALO, KHALO, &
       IS, IE, JS, JE, KS, KE, KA
+  use scale_grid, only: &
+      DX, &
+      DY
   use gtool_history, only: &
       HistoryGet
   use scale_comm, only: &

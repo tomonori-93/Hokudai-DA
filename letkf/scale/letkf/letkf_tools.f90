@@ -1879,10 +1879,10 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
 #endif
   !-- Added an entry for H08vt (by satoki) from here ---
   else if (obelm == id_h08vt_obs) then
-    if (obsda_sort%lev2(iob) < rz) then  ! the model grid is higher than the top height of the observation
-       nd_v = ABS(obsda_sort%lev2(iob) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
-    else if (obsda_sort%lev(iob) > rz) then  ! the model grid is lower than the bottom height of the observation
-       nd_v = ABS(obsda_sort%lev(iob) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+    if (ABS(obs(obset)%lev2(obidx)) < rz) then  ! the model grid is higher than the top height of the observation
+       nd_v = ABS(obs(obset)%lev2(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+    else if (ABS(obs(obset)%lev(obidx)) > rz) then  ! the model grid is lower than the bottom height of the observation
+       nd_v = ABS(obs(obset)%lev(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
     else  ! the model grid is located in the observation layer
        nd_v = 0.0d0
     end if
@@ -1910,7 +1910,7 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
     rdx = (ri - obs(obset)%ri(obidx)) * DX
     rdy = (rj - obs(obset)%rj(obidx)) * DY
     radm = sqrt(rdx*rdx + rdy*rdy)
-    nd_h = ABS(obsda_sort%rad(iob) - radm) / hori_loc_ctype(ic)
+    nd_h = ABS(obs(obset)%rad(obidx) - radm) / hori_loc_ctype(ic)
   end if
   !-- Replace rdx, rdy, and nd_h for H08vt (by satoki) to here ---
 

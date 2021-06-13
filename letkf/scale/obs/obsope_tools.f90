@@ -19,6 +19,7 @@ MODULE obsope_tools
 !  use scale_process, only: &
 !    PRC_myrank
 !    MPI_COMM_d => LOCAL_COMM_WORLD
+  USE common_obs_scale_H08VT
   use scale_grid_index, only: &
     KHALO, IHALO, JHALO
 #ifdef H08
@@ -76,6 +77,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   real(r_size), allocatable :: rigv(:)  ! rig for v grid (Add by satoki)
   real(r_size), allocatable :: rjgu(:)  ! rjg for u grid (Add by satoki)
   real(r_size), allocatable :: rjgv(:)  ! rjg for v grid (Add by satoki)
+  real(r_size) :: rig, rjg
 
   integer, allocatable :: qc_p(:)
 #ifdef H08
@@ -94,7 +96,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 ! -- for Himawari-8 obs --
   INTEGER :: nallprof ! H08: Num of all profiles (entire domain) required by RTTOV
   INTEGER :: ns ! H08 obs count
-  INTEGER :: nprof_H08 ! num of H08 obs
+  INTEGER :: nprof_H08   ! num of H08 obs
   REAL(r_size),ALLOCATABLE :: ri_H08(:),rj_H08(:)
   REAL(r_size),ALLOCATABLE :: lon_H08(:),lat_H08(:)
   REAL(r_size),ALLOCATABLE :: tmp_ri_H08(:),tmp_rj_H08(:)
@@ -104,18 +106,6 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   REAL(r_size),ALLOCATABLE :: yobs_H08_clr(:)
   INTEGER :: ch
   INTEGER,ALLOCATABLE :: qc_H08(:)
-
-! -- for Himawari-8 obs --
-  INTEGER :: nprof_H08vt ! num of H08vt obs
-  REAL(r_size),ALLOCATABLE :: ri_H08vt(:),rj_H08vt(:)
-  REAL(r_size),ALLOCATABLE :: lon_H08vt(:),lat_H08vt(:)
-  REAL(r_size),ALLOCATABLE :: lev_H08vt(:),lev2_H08vt(:),rad_H08vt(:)
-  REAL(r_size),ALLOCATABLE :: tmp_ri_H08vt(:),tmp_rj_H08vt(:)
-  REAL(r_size),ALLOCATABLE :: tmp_lon_H08vt(:),tmp_lat_H08vt(:)
-  REAL(r_size),ALLOCATABLE :: tmp_lev_H08vt(:),tmp_lev2_H08vt(:),tmp_rad_H08vt(:)
-
-  REAL(r_size),ALLOCATABLE :: yobs_H08vt(:)
-  INTEGER,ALLOCATABLE :: qc_H08vt(:)
 
 ! -- Rejecting obs over the buffer regions. --
 !
@@ -131,6 +121,20 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   REAL(r_size) :: bris, brie
   REAL(r_size) :: brjs, brje
 #endif
+
+! -- for Himawari-8 VT obs --
+  INTEGER :: proc, nsvt, nobs_0
+  INTEGER :: nallprofvt
+  INTEGER :: nprof_H08vt ! num of H08vt obs
+  REAL(r_size),ALLOCATABLE :: ri_H08vt(:),rj_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: lon_H08vt(:),lat_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: lev_H08vt(:),lev2_H08vt(:),rad_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: tmp_ri_H08vt(:),tmp_rj_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: tmp_lon_H08vt(:),tmp_lat_H08vt(:)
+  REAL(r_size),ALLOCATABLE :: tmp_lev_H08vt(:),tmp_lev2_H08vt(:),tmp_rad_H08vt(:)
+
+  REAL(r_size),ALLOCATABLE :: yobs_H08vt(:)
+  INTEGER,ALLOCATABLE :: qc_H08vt(:)
 
 ! -- for TC vital assimilation --
 !  INTEGER :: obs_set_TCX, obs_set_TCY, obs_set_TCP ! obs set
@@ -690,20 +694,20 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
           !---------------------------------------------------------------------
           IF(OBS_IN_FORMAT(iof) == obsfmt_h08vt)THEN
             nprof_H08vt = 0
-            nallprof = obs(iof)%nobs
+            nallprofvt = obs(iof)%nobs
 
-            ALLOCATE(tmp_ri_H08vt(nallprof))
-            ALLOCATE(tmp_rj_H08vt(nallprof))
-            ALLOCATE(tmp_lon_H08vt(nallprof))
-            ALLOCATE(tmp_lat_H08vt(nallprof))
-            ALLOCATE(tmp_rad_H08vt(nallprof))
-            ALLOCATE(tmp_lev_H08vt(nallprof))
-            ALLOCATE(tmp_lev2_H08vt(nallprof))
+            ALLOCATE(tmp_ri_H08vt(nallprofvt))
+            ALLOCATE(tmp_rj_H08vt(nallprofvt))
+            ALLOCATE(tmp_lon_H08vt(nallprofvt))
+            ALLOCATE(tmp_lat_H08vt(nallprofvt))
+            ALLOCATE(tmp_rad_H08vt(nallprofvt))
+            ALLOCATE(tmp_lev_H08vt(nallprofvt))
+            ALLOCATE(tmp_lev2_H08vt(nallprofvt))
 
-            do n = 1, nallprof
+            do n = 1, nallprofvt
               if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
                 call phys2ij(obs(iof)%lon(n),obs(iof)%lat(n),rig,rjg)  ! Search rig,rjg from lon,lat
-                !call rij_rank_g2l(rig,rjg,proc,ritmp,rjtmp)  ! Calculate ril,rjl from rig,rjg
+                call rij_rank(rig,rjg,proc)  ! Calculate ril,rjl from myrank
 
                 if (myrank_d == proc) then
                   nprof_H08vt = nprof_H08vt + 1 ! num of prof in myrank node
@@ -717,13 +721,13 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 
 !                  nobs_slot = nobs_slot + 1
                   obsda%set(nprof_H08vt) = iof
-                  obsda%ri(nprof_H08vt) = rig
-                  obsda%rj(nprof_H08vt) = rjg
+                  !obsda%ri(nprof_H08vt) = rig
+                  !obsda%rj(nprof_H08vt) = rjg
                   obsda%idx(nprof_H08vt) = n  ! No check
 
                 end if ! [ myrank_d == proc ]
               end if ! [ obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot) ]
-            end do ! [ n = 1, nallprof ]
+            end do ! [ n = 1, nallprofvt ]
 
             IF(nprof_H08vt >=1)THEN
               ALLOCATE(ri_H08vt(nprof_H08vt))
@@ -752,17 +756,18 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
               ALLOCATE(qc_H08vt(nprof_H08vt))
 
               CALL Trans_XtoY_H08VT(nprof_H08vt,ri_H08vt,rj_H08vt,lev_H08vt,lev2_H08vt,  &
-  &                                 lon_H08vt,lat_H08vt,rad_H08vt,ri_H08vt,rj_H08vt,  &
-  &                                 rigu,rigv,rjgu,rjgv,v3d,v2d,'obs',yobs_H08vt,qc_H08vt,stggrd)
+  &                                 lon_H08vt,lat_H08vt,rad_H08vt,  &
+  &                                 rigu,rigv,rjgu,rjgv,v3dg,v2dg,'obs',yobs_H08vt,qc_H08vt,1)
 
 !              obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
 
-              ns = 0
-              DO nn = nobs_0 + 1, nobs
-                ns = ns + 1
+              nsvt = 0
+              DO nn = 1, nobs
+!              DO nn = nobs_0 + 1, nobs
+                nsvt = nsvt + 1
 
-                obsda%val(nn) = yobs_H08(ns)
-                obsda%qc(nn) = qc_H08(ns)
+                obsda%val(nn) = yobs_H08vt(nsvt)
+                obsda%qc(nn) = qc_H08vt(nsvt)
 
                 if(obsda%qc(nn) == iqc_good)then
 !!!!!!                rig = obsda%ri(nn)
@@ -777,16 +782,13 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 !                endif
 
 ! -- Rejecting Himawari-8 obs over the buffer regions. --
-                  if((rig <= bris) .or. (rig >= brie) .or.&
-                     (rjg <= brjs) .or. (rjg >= brje))then
-                    obsda%qc(nn) = iqc_obs_bad
-                  endif
+!                  if((rig <= bris) .or. (rig >= brie) .or.&
+!                     (rjg <= brjs) .or. (rjg >= brje))then
+!                    obsda%qc(nn) = iqc_obs_bad
+!                  endif
                 endif
 
 !
-                obsda%lev(nn) = plev_obs_H08(ns)
-                obsda%val2(nn) = yobs_H08_clr(ns)
-
 !              write(6,'(a,f12.1,i9)')'H08 debug_plev',obsda%lev(nn),nn
 
               END DO ! [ nn = nobs_0 + 1, nobs ]
@@ -952,7 +954,7 @@ SUBROUTINE obsmake_cal(obs)
 #ifdef H08
 ! obsmake for H08 is not available !! (03/17/2016) T.Honda
 ! -- for Himawari-8 obs --
-  INTEGER :: nallprof ! H08: Num of all profiles (entire domain) required by RTTOV
+  INTEGER :: nallprofvt ! H08: Num of all profiles (entire domain) required by RTTOV
   INTEGER :: nprof_H08 ! num of H08 obs
   REAL(r_size),ALLOCATABLE :: ril_H08(:),rjl_H08(:)
   REAL(r_size),ALLOCATABLE :: lon_H08(:),lat_H08(:)
@@ -1064,15 +1066,15 @@ SUBROUTINE obsmake_cal(obs)
         nobs_slot = 0
         nprof_H08 = 0
 
-        nallprof = obs(iof)%nobs/nch
+        nallprofvt = obs(iof)%nobs/nch
 
-        ALLOCATE(tmp_ril_H08(nallprof))
-        ALLOCATE(tmp_rjl_H08(nallprof))
-        ALLOCATE(tmp_lon_H08(nallprof))
-        ALLOCATE(tmp_lat_H08(nallprof))
-        ALLOCATE(idx_H08(nallprof))
+        ALLOCATE(tmp_ril_H08(nallprofvt))
+        ALLOCATE(tmp_rjl_H08(nallprofvt))
+        ALLOCATE(tmp_lon_H08(nallprofvt))
+        ALLOCATE(tmp_lat_H08(nallprofvt))
+        ALLOCATE(idx_H08(nallprofvt))
 
-        do n = 1, nallprof
+        do n = 1, nallprofvt
           ns = (n - 1) * nch + 1
           if (obs(iof)%dif(n) > slot_lb .and. obs(iof)%dif(n) <= slot_ub) then
             nslot = nslot + 1
@@ -1100,7 +1102,7 @@ SUBROUTINE obsmake_cal(obs)
 
           end if ! [ obs%dif(n) > slot_lb .and. obs%dif(n) <= slot_ub ]
 
-        end do ! [ n = 1, nallprof ]
+        end do ! [ n = 1, nallprofvt ]
 
         IF(nprof_H08 >=1)THEN
           ALLOCATE(ril_H08(nprof_H08))

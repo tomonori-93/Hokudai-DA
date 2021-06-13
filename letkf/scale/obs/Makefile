@@ -16,6 +16,7 @@ COMMON_OBJS = $(COMMON_DIR)/SFMT.o           \
               $(COMMON_DIR)/common_scale.o     \
               $(COMMON_DIR)/common_obs_scale.o \
               $(COMMON_DIR)/common_mpi_scale.o \
+              $(COMMON_DIR)/common_obs_scale_H08VT.o \
               $(COMMON_DIR)/common_nml.o
 
 INCS    = $(SCALE_INC) $(NETCDF_INC)
