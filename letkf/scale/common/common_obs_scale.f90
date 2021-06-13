@@ -3318,6 +3318,8 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   REAL(r_size) :: slp2dg(nglon,nglat)   ! 2d variable in global domain
   REAL(r_size) :: t,q,topo              ! temporary variables for calculating slp from ps
   real(r_size) :: rig_tc,rjg_tc         ! the storm center location in global domain of the model simulation
+  REAL(r_size) :: v3du(nlevh,nlonh,nlath)  ! 3d model variables for u
+  REAL(r_size) :: v3dv(nlevh,nlonh,nlath)  ! 3d model variables for v
   REAL(RP) :: rotc(2)
 
   INTEGER :: stggrd_ = 1
@@ -3326,13 +3328,20 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   yobs = undef
   qc = iqc_good
 
-!-- under construction (from here)
   if (stggrd_ == 1) then  ! change u and v from vector points to scalar points
-    CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri-0.5_r_size,rj,u)  !###### should modity itpl_3d to prevent '1.0' problem....??
-    CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj-0.5_r_size,v)  !######
+    do jj=1,nlath
+      do ii=1,nlonh
+        CALL itpl_2dh(nlevh,v3d(:,:,:,iv3dd_u),rig(ii)-0.5_r_size,rjg(jj),v3du(:,ii,jj))  !###### should modity itpl_3d to prevent '1.0' problem....??
+        CALL itpl_2dh(nlevh,v3d(:,:,:,iv3dd_v),rig(ii),rjg(jj)-0.5_r_size,v3dv(:,ii,jj))  !######
+      end do
+    end do
   else
-    CALL itpl_3d(v3d(:,:,:,iv3dd_u),rk,ri,rj,u)
-    CALL itpl_3d(v3d(:,:,:,iv3dd_v),rk,ri,rj,v)
+    do jj=1,nlath
+      do ii=1,nlonh
+        CALL itpl_2dh(nlevh,v3d(:,:,:,iv3dd_u),rk,rig,rjg,v3du(:,ii,jj))
+        CALL itpl_2dh(nlevh,v3d(:,:,:,iv3dd_v),rk,rig,rjg,v3dv(:,ii,jj))
+      end do
+    end do
   end if
 
 ! Calculation on Cartesian coordinates
