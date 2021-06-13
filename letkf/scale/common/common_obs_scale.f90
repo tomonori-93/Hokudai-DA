@@ -3280,7 +3280,7 @@ END SUBROUTINE write_obs_H08
 !         1: staggered grid
 !-----------------------------------------------------------------------
 SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
-  &                         rig,rjg,v3d,v2d,cent_flag,yobs,qc,stggrd)
+  &                         rigu,rigv,rjgu,rjgv,v3d,v2d,cent_flag,yobs,qc,stggrd)
   use scale_mapproj, only: &
       MPRJ_rotcoef
   use scale_grid_index, only: &
@@ -3290,9 +3290,11 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   REAL(r_size),INTENT(IN) :: rig_tcobs(nprof),rjg_tcobs(nprof)  ! the first guess location for the storm center (lon,lat) in global domain
   REAL(r_size),INTENT(IN) :: rz1(nprof),rz2(nprof)  ! the levels (unit: m) for the vertical average
   REAL(r_size),INTENT(IN) :: lon(nprof),lat(nprof)  ! the first guess location for the storm center
-  REAL(r_size),INTENT(IN) :: rad(nprof)  ! the radius from the storm center in azimuthal average
-  REAL(r_size),INTENT(IN) :: rig(nlonh)  ! grid number for model variables in global domain
-  REAL(r_size),INTENT(IN) :: rjg(nlath)  ! grid number for model variables in global domain
+  REAL(r_size),INTENT(IN) :: rad(nprof)   ! the radius from the storm center in azimuthal average
+  REAL(r_size),INTENT(IN) :: rigu(nlonh)  ! ri in u grid number for model variables in global domain
+  REAL(r_size),INTENT(IN) :: rigv(nlonh)  ! ri v grid number for model variables in global domain
+  REAL(r_size),INTENT(IN) :: rjgu(nlath)  ! rj u grid number for model variables in global domain
+  REAL(r_size),INTENT(IN) :: rjgv(nlath)  ! rj v grid number for model variables in global domain
   REAL(r_size),INTENT(IN) :: v3d(nlevh,nlonh,nlath,nv3dd)  ! 3d model variables
   REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)  ! 2d model variables
   CHARACTER(3),INTENT(IN) :: cent_flag  ! Flag of the storm center in the model
@@ -3331,15 +3333,15 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   if (stggrd_ == 1) then  ! change u and v from vector points to scalar points
     do jj=1,nlath
       do ii=1,nlonh
-        CALL itpl_2d_column(v3d(:,:,:,iv3dd_u),rig(ii)-0.5_r_size,rjg(jj),v3du(:,ii,jj))  !###### should modity itpl_3d to prevent '1.0' problem....??
-        CALL itpl_2d_column(v3d(:,:,:,iv3dd_v),rig(ii),rjg(jj)-0.5_r_size,v3dv(:,ii,jj))  !######
+        CALL itpl_2d_column(v3d(:,:,:,iv3dd_u),rigu(ii)-0.5_r_size,rjgu(jj),v3du(:,ii,jj))  !###### should modity itpl_3d to prevent '1.0' problem....??
+        CALL itpl_2d_column(v3d(:,:,:,iv3dd_v),rigv(ii),rjgv(jj)-0.5_r_size,v3dv(:,ii,jj))  !######
       end do
     end do
   else
     do jj=1,nlath
       do ii=1,nlonh
-        CALL itpl_2d_column(v3d(:,:,:,iv3dd_u),rig,rjg,v3du(:,ii,jj))
-        CALL itpl_2d_column(v3d(:,:,:,iv3dd_v),rig,rjg,v3dv(:,ii,jj))
+        CALL itpl_2d_column(v3d(:,:,:,iv3dd_u),rigu,rjgu,v3du(:,ii,jj))
+        CALL itpl_2d_column(v3d(:,:,:,iv3dd_v),rigv,rjgv,v3dv(:,ii,jj))
       end do
     end do
   end if
@@ -3420,9 +3422,10 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 
      !-- 7. determine the nearest grid in the model for rig_rt,rjg_rt
      !--    (rig_rt,rjg_rt) -> (rigm(i_rigm),rjgm(j_rjgm))
+     !-- [NOTE]: (rigv, rjgu) is identical to each scalar point. 
 
         call rgrt_floor( nlonh, nlath, rig_rt, rjg_rt,  &
-  &                      rig, rjg, i_rigm, j_rjgm, rigm, rjgm )
+  &                      rigv, rjgu, i_rigm, j_rjgm, rigm, rjgm )
 
         if((i_rigm==0).or(j_rjgm==0))then  ! point [rad(ii), theta] is outside the domain
            cycle
@@ -3444,20 +3447,20 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
      !-- 9. calculate Vt from U and V at the four points,
      !--    and interpolate Vt(rad(ii),theta) from the four Vt
 
-        xi=(ri(i_rigm)-rig_tc)*DX*r_inv
-        yj=(rj(j_rjgm)-rjg_tc)*DY*r_inv
+        xi=(rigv(i_rigm)-rig_tc)*DX*r_inv
+        yj=(rjgu(j_rjgm)-rjg_tc)*DY*r_inv
         Vt(1,1)=xi*v(1,1)-yj*u(1,1)  ! rigm,rjgm
 
-        xi=(ri(i_rigm+1)-rig_tc)*DX*r_inv
-        yj=(rj(j_rjgm)-rjg_tc)*DY*r_inv
+        xi=(rigv(i_rigm+1)-rig_tc)*DX*r_inv
+        yj=(rjgu(j_rjgm)-rjg_tc)*DY*r_inv
         Vt(2,1)=xi*v(2,1)-yj*u(2,1)  ! rigm+1,rjgm
 
-        xi=(ri(i_rigm)-rig_tc)*DX*r_inv
-        yj=(rj(j_rjgm+1)-rjg_tc)*DY*r_inv
+        xi=(rigv(i_rigm)-rig_tc)*DX*r_inv
+        yj=(rjgu(j_rjgm+1)-rjg_tc)*DY*r_inv
         Vt(1,2)=xi*v(1,2)-yj*u(1,2)  ! rigm,rjgm+1
 
-        xi=(ri(i_rigm+1)-rig_tc)*DX*r_inv
-        yj=(rj(j_rjgm+1)-rjg_tc)*DY*r_inv
+        xi=(rigv(i_rigm+1)-rig_tc)*DX*r_inv
+        yj=(rjgu(j_rjgm+1)-rjg_tc)*DY*r_inv
         Vt(2,2)=xi*v(2,2)-yj*u(2,2)  ! rigm+1,rjgm+1
 
         a=rig_rt-rigm
