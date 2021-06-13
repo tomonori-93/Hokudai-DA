@@ -98,6 +98,9 @@ MODULE common_scale
   CHARACTER(vname_max),PARAMETER :: v2dd_name(nv2dd) = &
      (/'topo', 'SFC_PRES', 'PREC', 'U10', 'V10', 'T2', 'Q2'/)
 #endif
+!-- Added by satoki for rijg
+  CHARACTER(vname_max),PARAMETER :: rijg_name(4) = &
+     (/'CX', 'FX', CY', 'FY'/)  ! rigu, rigv, rjgu, rjgv
 
   ! 
   !--- Variables for model coordinates
@@ -902,7 +905,8 @@ END SUBROUTINE read_topo_par
 !-------------------------------------------------------------------------------
 ! [File I/O] Read SCALE history files
 !-------------------------------------------------------------------------------
-subroutine read_history(filename,step,v3dg,v2dg)
+!(ORG: by satoki) subroutine read_history(filename,step,v3dg,v2dg)
+subroutine read_history(filename,step,v3dg,v2dg,rigu,rigv,rjgu,rjgv)
   use scale_process, only: &
       PRC_myrank
   use scale_grid_index, only: &
@@ -920,10 +924,15 @@ subroutine read_history(filename,step,v3dg,v2dg)
   integer,intent(in) :: step
   real(r_size),intent(out) :: v3dg(nlevh,nlonh,nlath,nv3dd)
   real(r_size),intent(out) :: v2dg(nlonh,nlath,nv2dd)
+  real(r_size),intent(out),optional :: rigu(nlonh)  ! rig for u grid (Add by satoki)
+  real(r_size),intent(out),optional :: rigv(nlonh)  ! rig for v grid (Add by satoki)
+  real(r_size),intent(out),optional :: rjgu(nlath)  ! rjg for u grid (Add by satoki)
+  real(r_size),intent(out),optional :: rjgv(nlath)  ! rjg for v grid (Add by satoki)
   integer :: i,j,k,iv3d,iv2d
   character(len=12) :: filesuffix = '.pe000000.nc'
   real(RP) :: var3D(nlon,nlat,nlev)
   real(RP) :: var2D(nlon,nlat)
+  real(RP) :: var1Dx(nlon),var1Dy(nlat)  ! Add by satoki
 
   write (filesuffix(4:9),'(I6.6)') PRC_myrank
   write (6,'(A,I6.6,2A)') 'MYRANK ',myrank,' is reading a file ',trim(filename) // filesuffix
@@ -954,6 +963,35 @@ subroutine read_history(filename,step,v3dg,v2dg)
     v2dg(1+IHALO:nlon+IHALO,1+JHALO:nlat+JHALO,iv2d) = var2D(:,:)
   end do
 
+  ! rig and rjg (Add by satoki)
+  !-------------
+  if(present(rigu))then
+    if (LOG_LEVEL >= 1) then
+      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(1))  ! rigu
+    end if
+    call HistoryGet( var1Dx,filename,trim(rijg_name(1)),step)
+                   ! [OUT],  [IN]  ,     [IN]         ,[IN]
+    rigu(1+IHALO:nlon+IHALO) = var1Dx(:)/DX + 1.0_r_size
+    if (LOG_LEVEL >= 1) then
+      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(2))  ! rigv
+    end if
+    call HistoryGet( var1Dx,filename,trim(rijg_name(2)),step)
+                   ! [OUT],  [IN]  ,     [IN]         ,[IN]
+    rigv(1+IHALO:nlon+IHALO) = var1Dx(:)/DX + 1.0_r_size
+    if (LOG_LEVEL >= 1) then
+      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(3))  ! rjgu
+    end if
+    call HistoryGet( var1Dy,filename,trim(rijg_name(3)),step)
+                   ! [OUT],  [IN]  ,     [IN]         ,[IN]
+    rjgu(1+JHALO:nlat+JHALO) = var1Dy(:)/DY + 1.0_r_size
+    if (LOG_LEVEL >= 1) then
+      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(4))  ! rjgv
+    end if
+    call HistoryGet( var1Dy,filename,trim(rijg_name(4)),step)
+                   ! [OUT],  [IN]  ,     [IN]         ,[IN]
+    rjgv(1+JHALO:nlat+JHALO) = var1Dy(:)/DY + 1.0_r_size
+  end if
+
   ! Communicate halo
   !-------------
 !$OMP PARALLEL DO PRIVATE(i,j,iv3d) SCHEDULE(STATIC) COLLAPSE(2)
@@ -980,6 +1018,17 @@ subroutine read_history(filename,step,v3dg,v2dg)
   do iv2d = 1, nv2dd
     call COMM_wait ( v2dg(:,:,iv2d), iv2d )
   end do
+
+  if(present(rigu))then  ! Added by satoki
+    do i = IHALO, 1, -1
+      rigu(i) = rigu(1+IHALO) - real(IHALO-i+1)
+      rigv(i) = rigv(1+IHALO) - real(IHALO-i+1)
+    end do
+    do j = JHALO, 1, -1
+      rjgu(i) = rjgu(1+JHALO) - real(JHALO-j+1)
+      rjgv(i) = rjgv(1+JHALO) - real(JHALO-j+1)
+    end do
+  end if
 
   ! Save topo for later use
   !-------------
