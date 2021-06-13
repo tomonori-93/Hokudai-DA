@@ -74,8 +74,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   real(r_size), allocatable :: v2dg(:,:,:)
   real(r_size), allocatable :: rigu(:)  ! rig for u grid (Add by satoki)
   real(r_size), allocatable :: rigv(:)  ! rig for v grid (Add by satoki)
-  real(r_size), allocatable :: rigu(:)  ! rjg for u grid (Add by satoki)
-  real(r_size), allocatable :: rigv(:)  ! rjg for v grid (Add by satoki)
+  real(r_size), allocatable :: rjgu(:)  ! rjg for u grid (Add by satoki)
+  real(r_size), allocatable :: rjgv(:)  ! rjg for v grid (Add by satoki)
 
   integer, allocatable :: qc_p(:)
 #ifdef H08
@@ -753,7 +753,7 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 
               CALL Trans_XtoY_H08VT(nprof_H08vt,ri_H08vt,rj_H08vt,lev_H08vt,lev2_H08vt,  &
   &                                 lon_H08vt,lat_H08vt,rad_H08vt,ri_H08vt,rj_H08vt,  &
-  &                                 v3d,v2d,'obs',yobs_H08vt,qc_H08vt,stggrd)
+  &                                 rigu,rigv,rjgu,rjgv,v3d,v2d,'obs',yobs_H08vt,qc_H08vt,stggrd)
 
 !              obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
 
