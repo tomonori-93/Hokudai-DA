@@ -1060,12 +1060,17 @@ END SUBROUTINE gather_grd_mpi
 !-------------------------------------------------------------------------------
 ! Read ensemble SCALE history files, one file per time (iter)
 !-------------------------------------------------------------------------------
-subroutine read_ens_history_iter(iter, step, v3dg, v2dg)
+!(ORG: by satoki) subroutine read_ens_history_iter(iter, step, v3dg, v2dg)
+subroutine read_ens_history_iter(iter, step, v3dg, v2dg, rigu, rigv, rjgu, rjgv)
   implicit none
   integer, intent(in) :: iter
   integer, intent(in) :: step
   real(r_size), intent(out) :: v3dg(nlevh,nlonh,nlath,nv3dd)
   real(r_size), intent(out) :: v2dg(nlonh,nlath,nv2dd)
+  real(r_size), intent(out), optional :: rigu(nlonh)  ! rig for u grid (Add by satoki)
+  real(r_size), intent(out), optional :: rigv(nlonh)  ! rig for v grid (Add by satoki)
+  real(r_size), intent(out), optional :: rjgu(nlath)  ! rjg for u grid (Add by satoki)
+  real(r_size), intent(out), optional :: rjgv(nlath)  ! rjg for v grid (Add by satoki)
   character(filelenmax) :: filename
   integer :: im
 
@@ -1085,7 +1090,12 @@ subroutine read_ens_history_iter(iter, step, v3dg, v2dg)
       call read_history_par(trim(filename), step, v3dg, v2dg, MPI_COMM_d)
     else
 #endif
-      call read_history(trim(filename), step, v3dg, v2dg)
+      if(present(rigu))then  ! Add by satoki  (Only supporting No PNETCDF)
+        call read_history(trim(filename), step, v3dg, v2dg,  &
+  &                       rigu=rigu, rigv=rigv, rjgu=rjgu, rjgv=rjgv)
+      else
+        call read_history(trim(filename), step, v3dg, v2dg)
+      end if
 #ifdef PNETCDF
     end if
 #endif
