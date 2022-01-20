@@ -212,12 +212,12 @@ SUBROUTINE Trans_XtoY_H08VT(slot_v,procd_v,rig_tcobs,rjg_tcobs,rz1,rz2,  &
         !--     (rig_rt,rjg_rt) -> (rigm(i_rigm),rjgm(j_rjgm))
         !-- [NOTE]: (rigv, rjgu) is identical to each scalar point. 
 
-write(*,*) "(debug) satoki: ",nlonh, nlath, rig_rt, rjg_rt,  &
+!(debug) write(*,*) "(debug) satoki: ",nlonh, nlath, rig_rt, rjg_rt,  &
   &                      rigv, rjgu 
           call rgrt_floor( nlonh, nlath, rig_rt, rjg_rt,  &
   &                        rigv, rjgu, i_rigm, j_rjgm, rigm, rjgm )
 
-write(*,*) "(debug) satoki: i_rigm, j_rjgm", i_rigm, j_rjgm
+!(debug) write(*,*) "(debug) satoki: i_rigm, j_rjgm", i_rigm, j_rjgm
           if((i_rigm==0).or.(j_rjgm==0))then  ! point [rad(ii,kk), theta] is outside the domain
              cycle
           end if
@@ -226,7 +226,7 @@ write(*,*) "(debug) satoki: i_rigm, j_rjgm", i_rigm, j_rjgm
           !-- 1.1 make vertical averages of horizontal winds (U and V)
           !--     at the four points (i.e., rigm~rigm+1,rjgm~rjgm+1)
 
-write(*,*) "(debug) satoki: vert", nlevh,rz1(ii,kk), rz2(ii,kk),v3d(:,1,1,iv3dd_hgt), v3d(:,1,1,iv3dd_u)
+!(debug) write(*,*) "(debug) satoki: vert", nlevh,rz1(ii,kk), rz2(ii,kk),v3d(:,1,1,iv3dd_hgt), v3d(:,1,1,iv3dd_u)
           call vert_ave( nlevh,rz1(ii,kk), rz2(ii,kk),  &
   &                      v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_hgt),  &
   &                      v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_u),  &
@@ -236,7 +236,7 @@ write(*,*) "(debug) satoki: vert", nlevh,rz1(ii,kk), rz2(ii,kk),v3d(:,1,1,iv3dd_
   &                      v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_v),  &
   &                      v(1:2,1:2) )
 
-write(*,*) "(debug) satoki: u,v", u(1:2,1:2), v(1:2,1:2)
+!(debug) write(*,*) "(debug) satoki: u,v", u(1:2,1:2), v(1:2,1:2)
           !-- 1.2 calculate Vt from U and V at the four points,
           !--     and interpolate Vt(rad(ii,kk),theta) from the four Vt
 
@@ -277,14 +277,14 @@ write(*,*) "(debug) satoki: u,v", u(1:2,1:2), v(1:2,1:2)
         !-- 2.3 Broadcast the results to all MPI ranks
         !-- [Note]: These procedures are coupled by MPI_ALLREDUCE
 
-        if(myrank_e == 0)then
-write(*,*) "v check satoki", rad(ii,kk), yobs(ii,kk)
+!org        if(myrank_e == 0)then
+!(debug) write(*,*) "v check satoki", rad(ii,kk), yobs(ii,kk)
           call mpi_timer('', 2, barrier = MPI_COMM_d)
           call MPI_AllReduce(Vtb_sec,yobs(ii,kk),1,MPI_r_size,MPI_SUM,MPI_COMM_d,ierr)  ! sum[rank(0-M)] -> rank(0-M)
-        end if
+!org        end if
 !       call azim_sum( nprocs_d, Vtb_sec, i_Vtb_sec, yobs(ii,kk) )
         yobs(ii,kk)=yobs(ii,kk)/real(ntheta)
-write(*,*) "v check satoki", rad(ii,kk), yobs(ii,kk)
+!(debug) write(*,*) "v check satoki", rad(ii,kk), yobs(ii,kk)
 
 !       if(i_Vtb_sec(my_rank)==1)then
         qc(ii,kk)=iqc_good  ! No check

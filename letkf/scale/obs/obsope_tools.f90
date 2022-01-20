@@ -322,7 +322,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
             obidx_bufs(bsnext(islot_domain_out, 0)) = n
           else
             islot = ceiling(obs(iof)%dif(n) / SLOT_TINTERVAL - 0.5d0) + SLOT_BASE
-write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
+!(debug) write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
             if (islot < SLOT_START .or. islot > SLOT_END) then
               islot = islot_time_out
             end if
@@ -711,7 +711,7 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 !          write (6, '(A,I10)') ' -- # obs in the slot = ', slot_nobsg
 !          write (6, '(A,I6,A,I6,A,I10)') ' -- # obs in the slot and processed by rank ', myrank, ' (subdomain #', myrank_d, ') = ', bsn(islot, myrank_d)
 
-          if(myrank_e == 0)then
+!org          if(myrank_e == 0)then
             !-- Allocate internal working variables
             !-- [Note]: Number of the array element is greater than that used 
             !--         in real (=nprof_H08vt still not defined here) for safety
@@ -738,13 +738,13 @@ write(*,*) "dif check", iof, n, obs(iof)%dif(n), islot
 !org            call mpi_timer('', 2, barrier = MPI_COMM_d)
 
 !org            call MPI_AllReduce(tmp_nobsd_H08vt,tmp_nobsg_H08vt,1,MPI_INTEGER,MPI_SUM,MPI_COMM_d,ierr)  ! sum[rank(0-M)] -> rank(0-M)
-write(*,*) "satoki (debug1)", tmp_obsgp_H08vt(:,myrank_d+1)
+!(debug) write(*,*) "satoki (debug1)", tmp_obsgp_H08vt(:,myrank_d+1)
             call mpi_timer('', 2, barrier = MPI_COMM_d)
             call MPI_ALLGATHER(tmp_obsdp_H08vt,slot_nobsg,MPI_INTEGER,  &
   &                            tmp_obsgp_H08vt,slot_nobsg,MPI_INTEGER,  &
   &                            MPI_COMM_d,ierr)  ! Share among all processes
-write(*,*) "check1", tmp_obsdp_H08vt
-write(*,*) "check2", tmp_obsgp_H08vt
+!(debug) write(*,*) "check1", tmp_obsdp_H08vt
+!(debug) write(*,*) "check2", tmp_obsgp_H08vt
 
             !-- 2. Check available observations in each subdomain, and 
             !--    Broadcast the observations to all subdomains
@@ -755,7 +755,7 @@ write(*,*) "check2", tmp_obsgp_H08vt
             do ns = 1, nprocs_d      ! For subdomain processes
               do nt = 1, slot_nobsg  ! For observations in each subdomain  !  ここからチェック
                 nu = tmp_obsgp_H08vt(nt,ns)
-write(*,*) "satoki check2, nt, ns, nu", nt, ns, nu
+!(debug) write(*,*) "satoki check2, nt, ns, nu", nt, ns, nu
                 if( nu > 0 )then
 
                   if( myrank_d == ns - 1 )then  ! Enter in an MPI rank (ns - 1)
@@ -778,12 +778,12 @@ write(*,*) "satoki check2, nt, ns, nu", nt, ns, nu
 !org                ALLOCATE(tmp_lev_H08vt(nallprofvt))
 !org                ALLOCATE(tmp_lev2_H08vt(nallprofvt))
 
-write(*,*) "satoki tmp  check", nu, iof, obs(iof)%dif(nu)
+!(debug) write(*,*) "satoki tmp  check", nu, iof, obs(iof)%dif(nu)
                     n = nu
 !org                do n = 1, nallprofvt
                     if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
-write(*,*) "obs check satoki", obs(iof)%rad(n), obs(iof)%lon(n),  &
-  &obs(iof)%lat(n), obs(iof)%lev(n), obs(iof)%lev2(n)
+!(debug) write(*,*) "obs check satoki", obs(iof)%rad(n), obs(iof)%lon(n),  &
+!(debug)   &obs(iof)%lat(n), obs(iof)%lev(n), obs(iof)%lev2(n)
                       call phys2ij(obs(iof)%lon(n),obs(iof)%lat(n),rig,rjg)  ! Search rig,rjg from lon,lat
                       call rij_rank(rig,rjg,proc)  ! Calculate ril,rjl from myrank
 
@@ -821,13 +821,13 @@ write(*,*) "obs check satoki", obs(iof)%rad(n), obs(iof)%lon(n),  &
 
                   end if ! [ myrank_d == ns - 1 ]
 
-write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
+!(debug) write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
                   call MPI_BARRIER(MPI_COMM_d)
                   call MPI_BCAST(nprof_H08vt,1, MPI_INTEGER, ns-1, MPI_COMM_d, ierr)
                   call MPI_BCAST(valid_H08vt(nt,ns),1, MPI_LOGICAL, ns-1, MPI_COMM_d, ierr)
                   call MPI_BCAST(mpi_bcast_v_H08vt, 7, MPI_r_size,  ns-1, MPI_COMM_d, ierr)
 
-write(*,*) "satoki bcast check4, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
+!(debug) write(*,*) "satoki bcast check4, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
                   ri_H08vt(nt,ns)    = mpi_bcast_v_H08vt(1)
                   rj_H08vt(nt,ns)    = mpi_bcast_v_H08vt(2)
                   lon_H08vt(nt,ns)   = mpi_bcast_v_H08vt(3)
@@ -861,18 +861,18 @@ write(*,*) "satoki bcast check4, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_
               end do  ! [ nt = 1, slot_nobsg ] ! For observations in each subdomain
             end do  ! [ ns = 1, nprocs_d ]     ! For subdomain processes
 
-write(*,*) "satoki check Enter Trans_XtoY_H08VT"
+!(debug) write(*,*) "satoki check Enter Trans_XtoY_H08VT"
             ALLOCATE(yobs_H08vt(slot_nobsg,nprocs_d))
             ALLOCATE(qc_H08vt(slot_nobsg,nprocs_d))
 
-write(*,*) "rad check satoki", rad_H08vt, nprof_H08vt
-write(*,*) "satoki checkk, Enter Trans"!, OBS_IN_FORMAT(iof), iof
+!(debug) write(*,*) "rad check satoki", rad_H08vt, nprof_H08vt
+!(debug) write(*,*) "satoki checkk, Enter Trans"!, OBS_IN_FORMAT(iof), iof
             !-- 3. Enter the actual observation operator [H(x)] for H08VT
             !--    [out]: yobs_H08vt,qc_H08vt for each subdomain
             CALL Trans_XtoY_H08VT(slot_nobsg,nprocs_d,ri_H08vt,rj_H08vt,lev_H08vt,lev2_H08vt,  &
   &                               lon_H08vt,lat_H08vt,rad_H08vt,valid_H08vt,  &
   &                               rigu,rigv,rjgu,rjgv,v3dg,v2dg,'obs',yobs_H08vt,qc_H08vt,1)
-write(*,*) "satoki check Exit Trans_XtoY_H08VT"
+!(debug) write(*,*) "satoki check Exit Trans_XtoY_H08VT"
 
 !            obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
 
@@ -949,11 +949,12 @@ write(*,*) "satoki check Exit Trans_XtoY_H08VT"
             DEALLOCATE(lon_H08vt,lat_H08vt)
             DEALLOCATE(rad_H08vt)
             DEALLOCATE(lev_H08vt,lev2_H08vt)
+            DEALLOCATE(valid_H08vt)
 
             DEALLOCATE(yobs_H08vt)
             DEALLOCATE(qc_H08vt)
 
-          ENDIF  ! [ myrank_e == 0 ]
+!org          ENDIF  ! [ myrank_e == 0 ]
 
           deallocate ( tmp_obsdp_H08vt )
           deallocate ( tmp_obsgp_H08vt )
