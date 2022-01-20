@@ -9,6 +9,7 @@ MODULE common_obs_scale
 !   07/25/2014 Guo-Yuan Lien     modified for SCALE model
 !   .......... See git history for the following revisions
 !   02/23/2021 Satoki Tsujino    added a new ID for H08 Vt
+!   01/17/2022 Satoki Tsujino    added the entry for get_nobs_H08vt
 !
 !=======================================================================
 !
@@ -651,7 +652,7 @@ SUBROUTINE vert_ave( kz, z1, z2, zval, ival, oval )
      oval(ii,jj)=0.0
      icounter=0.0
      do kk=1,kz
-        if(z1>=zval(kk,ii,jj).and.z2<=zval(kk,ii,jj))then
+        if(z1<=zval(kk,ii,jj).and.z2>=zval(kk,ii,jj))then
            oval(ii,jj)=oval(ii,jj)+ival(kk,ii,jj)
            icounter=icounter+1.0
         end if
@@ -2768,7 +2769,7 @@ subroutine read_obs_all(obs)
     case (obsfmt_h08)
       call get_nobs_H08(trim(OBS_IN_NAME(iof)),obs(iof)%nobs) ! H08
     case (obsfmt_h08vt)
-      write(*,*) "Under construction by satoki"
+      call get_nobs_H08vt(trim(OBS_IN_NAME(iof)),obs(iof)%nobs) ! H08vt (by satoki)
     case default
       write(6,*) '[Error] Unsupported observation file format!'
       stop
@@ -3367,6 +3368,8 @@ SUBROUTINE read_obs_H08vt(cfile,obs)
     obs%err(n) = REAL(wk(8),r_size)
     obs%typ(n) = NINT(wk(9))
     obs%dif(n) = REAL(wk(10),r_size)
+write(*,*) "read_obs_H08vt check", n, obs%elm(n), obs%lon(n), obs%lat(n),  &
+  &        obs%rad(n), obs%lev(n), obs%lev2(n), obs%dat(n), obs%err(n)
 
   END DO
   CLOSE(iunit)

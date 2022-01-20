@@ -1784,6 +1784,9 @@ subroutine read_obs_all_mpi(obs)
     call MPI_BCAST(obs(iof)%typ, obs(iof)%nobs, MPI_INTEGER, 0, MPI_COMM_a, ierr)
     call MPI_BCAST(obs(iof)%dif, obs(iof)%nobs, MPI_r_size, 0, MPI_COMM_a, ierr)
     call MPI_BCAST(obs(iof)%meta, max_obs_info_meta, MPI_r_size, 0, MPI_COMM_a, ierr)
+    !-- Adding variables for H08vt (by satoki)
+    call MPI_BCAST(obs(iof)%rad, obs(iof)%nobs, MPI_r_size, 0, MPI_COMM_a, ierr)
+    call MPI_BCAST(obs(iof)%lev2, obs(iof)%nobs, MPI_r_size, 0, MPI_COMM_a, ierr)
   end do ! [ iof = 1, OBS_IN_NUM ]
 
   call mpi_timer('read_obs_all_mpi:mpi_bcast:', 2)

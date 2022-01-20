@@ -59,18 +59,21 @@ CONTAINS
 !         0: non-staggered grid
 !         1: staggered grid
 !-----------------------------------------------------------------------
-SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
-  &                         rigu,rigv,rjgu,rjgv,v3d,v2d,cent_flag,yobs,qc,stggrd)
+SUBROUTINE Trans_XtoY_H08VT(slot_v,procd_v,rig_tcobs,rjg_tcobs,rz1,rz2,  &
+  &                         lon,lat,rad,valid,rigu,rigv,rjgu,rjgv,  &
+  &                         v3d,v2d,cent_flag,yobs,qc,stggrd)
   use scale_mapproj, only: &
       MPRJ_rotcoef
   use scale_grid_index, only: &
       KHALO
   IMPLICIT NONE
-  INTEGER,INTENT(in) :: nprof  ! observation number for Vt observation
-  REAL(r_size),INTENT(IN) :: rig_tcobs(nprof),rjg_tcobs(nprof)  ! the first guess location for the storm center (lon,lat) in global domain
-  REAL(r_size),INTENT(IN) :: rz1(nprof),rz2(nprof)  ! the levels (unit: m) for the vertical average
-  REAL(r_size),INTENT(IN) :: lon(nprof),lat(nprof)  ! the first guess location for the storm center
-  REAL(r_size),INTENT(IN) :: rad(nprof)   ! the radius from the storm center in azimuthal average
+  INTEGER,INTENT(in) :: slot_v   ! max. observation number for Vt observation in one process
+  INTEGER,INTENT(in) :: procd_v  ! process number in all subdomains
+  REAL(r_size),INTENT(IN) :: rig_tcobs(slot_v,procd_v),rjg_tcobs(slot_v,procd_v)  ! the first guess location for the storm center (lon,lat) in global domain
+  REAL(r_size),INTENT(IN) :: rz1(slot_v,procd_v),rz2(slot_v,procd_v)  ! the levels (unit: m) for the vertical average
+  REAL(r_size),INTENT(IN) :: lon(slot_v,procd_v),lat(slot_v,procd_v)  ! the first guess location for the storm center
+  REAL(r_size),INTENT(IN) :: rad(slot_v,procd_v)   ! the radius from the storm center in azimuthal average
+  LOGICAL,INTENT(IN) :: valid(slot_v,procd_v)      ! valid flag in avairable observation
   REAL(r_size),INTENT(IN) :: rigu(nlonh)  ! ri in u grid number for model variables in global domain
   REAL(r_size),INTENT(IN) :: rigv(nlonh)  ! ri v grid number for model variables in global domain
   REAL(r_size),INTENT(IN) :: rjgu(nlath)  ! rj u grid number for model variables in global domain
@@ -79,10 +82,10 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
   REAL(r_size),INTENT(IN) :: v2d(nlonh,nlath,nv2dd)  ! 2d model variables
   CHARACTER(3),INTENT(IN) :: cent_flag  ! Flag of the storm center in the model
                                         ! 'cal' = calculation from the slp, 'obs' = use of r{i,j}g_tcobs
-  REAL(r_size),INTENT(OUT) :: yobs(nprof)  ! H(x)
-  INTEGER,INTENT(OUT) :: qc(nprof)
+  REAL(r_size),INTENT(OUT) :: yobs(slot_v,procd_v)  ! H(x)
+  INTEGER,INTENT(OUT) :: qc(slot_v,procd_v)
   INTEGER,INTENT(IN),OPTIONAL :: stggrd
-  INTEGER :: ii, jj, m, ierr
+  INTEGER :: ii, jj, kk, m, ierr
   INTEGER :: ntheta                     ! sampling number for azimuthal direction at a radius
   INTEGER :: i_rigm,j_rjgm              ! floor(rig_rt),floor(rjg_rt)
   INTEGER,ALLOCATABLE :: i_Vtb(:)       ! variable for counting avairable points
@@ -135,7 +138,10 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 !(no need)    end if
 !-- under construction (to here)
 
-  do ii=1,nprof
+  do kk=1,procd_v
+    do ii=1,slot_v
+
+      if(valid(ii,kk).eqv..true.)then
 
 !  !-- Not (Process 1: Determine the storm center based on the SLP if cent_flag = 'cal')
 
@@ -173,118 +179,129 @@ SUBROUTINE Trans_XtoY_H08VT(nprof,rig_tcobs,rjg_tcobs,rz1,rz2,lon,lat,rad,  &
 !
 !     case('obs')
 
-       rig_tc=rig_tcobs(ii)
-       rjg_tc=rjg_tcobs(ii)
+        rig_tc=rig_tcobs(ii,kk)
+        rjg_tc=rjg_tcobs(ii,kk)
 
 !     end select
 
-     r_inv=1.0d0/rad(ii)
+        r_inv=1.0d0/rad(ii,kk)
 
-     !-- (Process 0: Preprocess)
-     !-- 0.1 define azimuthal sampling number at each observation radius (rad(ii))
+        !-- (Process 0: Preprocess)
+        !-- 0.1 define azimuthal sampling number at each observation radius (rad(ii,kk))
 
-     ntheta=int(360.0*deg2rad*rad(ii)/DX)
-     allocate(Vtb(ntheta))
-     allocate(i_Vtb(ntheta))  ! For counting avairable points
-     Vtb=0.0d0
-     i_Vtb=0
+        ntheta=int(360.0*deg2rad*rad(ii,kk)/DX)
+        allocate(Vtb(ntheta))
+        allocate(i_Vtb(ntheta))  ! For counting avairable points
+        Vtb=0.0d0
+        i_Vtb=0
 
 !$OMP PARALLEL DEFAULT(SHARED)
 !$OMP DO SCHEDULE(RUNTIME)  &
 !$OMP &  PRIVATE(jj,theta,rig_rt,rjg_rt,i_rigm,j_rjgm,rigm,rjgm,u,v,xi,yj,Vt,a,b)
 
-     do jj=1,ntheta
+        do jj=1,ntheta
 
-     !-- 0.2 calculate ri(r,t)g,rj(r,t)g at rad(ii) and theta
+        !-- 0.2 calculate ri(r,t)g,rj(r,t)g at rad(ii,kk) and theta
 
-        theta=360.0*deg2rad*real(jj-1)/real(ntheta-1)
+          theta=360.0*deg2rad*real(jj-1)/real(ntheta-1)
 
-        rig_rt=rig_tc+(rad(ii)/DX)*cos(theta)
-        rjg_rt=rjg_tc+(rad(ii)/DY)*sin(theta)
+          rig_rt=rig_tc+(rad(ii,kk)/DX)*cos(theta)
+          rjg_rt=rjg_tc+(rad(ii,kk)/DY)*sin(theta)
 
-     !-- 0.3 determine the nearest grid in the model for rig_rt,rjg_rt
-     !--     (rig_rt,rjg_rt) -> (rigm(i_rigm),rjgm(j_rjgm))
-     !-- [NOTE]: (rigv, rjgu) is identical to each scalar point. 
+        !-- 0.3 determine the nearest grid in the model for rig_rt,rjg_rt
+        !--     (rig_rt,rjg_rt) -> (rigm(i_rigm),rjgm(j_rjgm))
+        !-- [NOTE]: (rigv, rjgu) is identical to each scalar point. 
 
-        call rgrt_floor( nlonh, nlath, rig_rt, rjg_rt,  &
-  &                      rigv, rjgu, i_rigm, j_rjgm, rigm, rjgm )
+write(*,*) "(debug) satoki: ",nlonh, nlath, rig_rt, rjg_rt,  &
+  &                      rigv, rjgu 
+          call rgrt_floor( nlonh, nlath, rig_rt, rjg_rt,  &
+  &                        rigv, rjgu, i_rigm, j_rjgm, rigm, rjgm )
 
-        if((i_rigm==0).or.(j_rjgm==0))then  ! point [rad(ii), theta] is outside the domain
-           cycle
-        end if
+write(*,*) "(debug) satoki: i_rigm, j_rjgm", i_rigm, j_rjgm
+          if((i_rigm==0).or.(j_rjgm==0))then  ! point [rad(ii,kk), theta] is outside the domain
+             cycle
+          end if
 
-     !-- (Process 1: Make vertical averages of horizontal winds)
-     !-- 1.1 make vertical averages of horizontal winds (U and V)
-     !--     at the four points (i.e., rigm~rigm+1,rjgm~rjgm+1)
+          !-- (Process 1: Make vertical averages of horizontal winds)
+          !-- 1.1 make vertical averages of horizontal winds (U and V)
+          !--     at the four points (i.e., rigm~rigm+1,rjgm~rjgm+1)
 
-        call vert_ave( nlevh,rz1(ii), rz2(ii),  &
-  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_hgt),  &
-  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_u),  &
-  &                    u(1:2,1:2) )
-        call vert_ave( nlevh,rz1(ii), rz2(ii),  &
-  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_hgt),  &
-  &                    v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_v),  &
-  &                    v(1:2,1:2) )
+write(*,*) "(debug) satoki: vert", nlevh,rz1(ii,kk), rz2(ii,kk),v3d(:,1,1,iv3dd_hgt), v3d(:,1,1,iv3dd_u)
+          call vert_ave( nlevh,rz1(ii,kk), rz2(ii,kk),  &
+  &                      v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_hgt),  &
+  &                      v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_u),  &
+  &                      u(1:2,1:2) )
+          call vert_ave( nlevh,rz1(ii,kk), rz2(ii,kk),  &
+  &                      v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_hgt),  &
+  &                      v3d(:,i_rigm:i_rigm+1,j_rjgm:j_rjgm+1,iv3dd_v),  &
+  &                      v(1:2,1:2) )
 
-     !-- 1.2 calculate Vt from U and V at the four points,
-     !--     and interpolate Vt(rad(ii),theta) from the four Vt
+write(*,*) "(debug) satoki: u,v", u(1:2,1:2), v(1:2,1:2)
+          !-- 1.2 calculate Vt from U and V at the four points,
+          !--     and interpolate Vt(rad(ii,kk),theta) from the four Vt
 
-        xi=(rigv(i_rigm)-rig_tc)*DX*r_inv
-        yj=(rjgu(j_rjgm)-rjg_tc)*DY*r_inv
-        Vt(1,1)=xi*v(1,1)-yj*u(1,1)  ! rigm,rjgm
+          xi=(rigv(i_rigm)-rig_tc)*DX*r_inv
+          yj=(rjgu(j_rjgm)-rjg_tc)*DY*r_inv
+          Vt(1,1)=xi*v(1,1)-yj*u(1,1)  ! rigm,rjgm
 
-        xi=(rigv(i_rigm+1)-rig_tc)*DX*r_inv
-        yj=(rjgu(j_rjgm)-rjg_tc)*DY*r_inv
-        Vt(2,1)=xi*v(2,1)-yj*u(2,1)  ! rigm+1,rjgm
+          xi=(rigv(i_rigm+1)-rig_tc)*DX*r_inv
+          yj=(rjgu(j_rjgm)-rjg_tc)*DY*r_inv
+          Vt(2,1)=xi*v(2,1)-yj*u(2,1)  ! rigm+1,rjgm
 
-        xi=(rigv(i_rigm)-rig_tc)*DX*r_inv
-        yj=(rjgu(j_rjgm+1)-rjg_tc)*DY*r_inv
-        Vt(1,2)=xi*v(1,2)-yj*u(1,2)  ! rigm,rjgm+1
+          xi=(rigv(i_rigm)-rig_tc)*DX*r_inv
+          yj=(rjgu(j_rjgm+1)-rjg_tc)*DY*r_inv
+          Vt(1,2)=xi*v(1,2)-yj*u(1,2)  ! rigm,rjgm+1
 
-        xi=(rigv(i_rigm+1)-rig_tc)*DX*r_inv
-        yj=(rjgu(j_rjgm+1)-rjg_tc)*DY*r_inv
-        Vt(2,2)=xi*v(2,2)-yj*u(2,2)  ! rigm+1,rjgm+1
+          xi=(rigv(i_rigm+1)-rig_tc)*DX*r_inv
+          yj=(rjgu(j_rjgm+1)-rjg_tc)*DY*r_inv
+          Vt(2,2)=xi*v(2,2)-yj*u(2,2)  ! rigm+1,rjgm+1
 
-        a=rig_rt-rigm
-        b=rjg_rt-rjgm
-        Vtb(jj)=(1.0-b)*(1.0-a)*Vt(1,1)+(1.0-b)*a*Vt(2,1)  &
-  &            +b*(1.0-a)*Vt(1,2)+b*a*Vt(2,2)
-        i_Vtb(jj)=1  ! avairable flag for azimuthal average
+          a=rig_rt-rigm
+          b=rjg_rt-rjgm
+          Vtb(jj)=(1.0-b)*(1.0-a)*Vt(1,1)+(1.0-b)*a*Vt(2,1)  &
+  &              +b*(1.0-a)*Vt(1,2)+b*a*Vt(2,2)
+          i_Vtb(jj)=1  ! avairable flag for azimuthal average
 
-     end do  ! jj=1,ntheta
+        end do  ! [ jj=1, ntheta ]
 
 !$OMP END DO
 !$OMP END PARALLEL
 
-     !-- (Process 2: make azimuthal average Vtb_sec (sector range) of Vtb at rad(ii))
+        !-- (Process 2: make azimuthal average Vtb_sec (sector range) of Vtb at rad(ii,kk))
 
-     call azim_sum( ntheta, Vtb, i_Vtb, Vtb_sec )
+        call azim_sum( ntheta, Vtb, i_Vtb, Vtb_sec )
 
-     !-- 2.1 Gather Vtb_sec (and i_Vtb_sec) in each rank to Vtbg_sec in rankm
-     !--     (rankm includes the storm center (rig_tcobs,rjg_tcobs))
-     !-- 2.2 make average of Vtb_sec in each sector at rad(ii)
-     !-- 2.3 Broadcast the results to all MPI ranks
-     !-- [Note]: These procedures are coupled by MPI_ALLREDUCE
+        !-- 2.1 Gather Vtb_sec (and i_Vtb_sec) in each rank to Vtbg_sec in rankm
+        !--     (rankm includes the storm center (rig_tcobs,rjg_tcobs))
+        !-- 2.2 make average of Vtb_sec in each sector at rad(ii,kk)
+        !-- 2.3 Broadcast the results to all MPI ranks
+        !-- [Note]: These procedures are coupled by MPI_ALLREDUCE
 
-     if(myrank_e == 0)then
-       call mpi_timer('', 2, barrier = MPI_COMM_d)
-       call MPI_AllReduce(Vtb_sec,yobs(ii),1,MPI_r_size,MPI_SUM,MPI_COMM_d,ierr)  ! sum[rank(0-M)] -> rank(0-M)
-     end if
-!     call azim_sum( nprocs_d, Vtb_sec, i_Vtb_sec, yobs(ii) )
-     yobs(ii)=yobs(ii)/real(ntheta)
+        if(myrank_e == 0)then
+write(*,*) "v check satoki", rad(ii,kk), yobs(ii,kk)
+          call mpi_timer('', 2, barrier = MPI_COMM_d)
+          call MPI_AllReduce(Vtb_sec,yobs(ii,kk),1,MPI_r_size,MPI_SUM,MPI_COMM_d,ierr)  ! sum[rank(0-M)] -> rank(0-M)
+        end if
+!       call azim_sum( nprocs_d, Vtb_sec, i_Vtb_sec, yobs(ii,kk) )
+        yobs(ii,kk)=yobs(ii,kk)/real(ntheta)
+write(*,*) "v check satoki", rad(ii,kk), yobs(ii,kk)
 
-!     if(i_Vtb_sec(my_rank)==1)then
-        qc(ii)=iqc_good  ! No check
-!     else
-!        qc(ii)=iqc_obs_bad  ! Not include in this rank
-!     end if
+!       if(i_Vtb_sec(my_rank)==1)then
+        qc(ii,kk)=iqc_good  ! No check
+!       else
+!          qc(ii,kk)=iqc_obs_bad  ! Not include in this rank
+!       end if
 
-     deallocate(Vtb)
-     deallocate(i_Vtb)
+        deallocate(Vtb)
+        deallocate(i_Vtb)
 
-     call MPI_Barrier(MPI_COMM_d,ierr)
+        call MPI_Barrier(MPI_COMM_d,ierr)
 
-  end do  ! ii=1,nprof
+      end if  ! [ valid(ii,kk).eqv..true. ]
+
+    end do  ! [ ii = 1, slot_v ]
+
+  end do  ! [ kk = 1, procd_v ]
 
   RETURN
 END SUBROUTINE Trans_XtoY_H08VT

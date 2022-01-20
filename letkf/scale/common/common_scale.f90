@@ -99,8 +99,10 @@ MODULE common_scale
      (/'topo', 'SFC_PRES', 'PREC', 'U10', 'V10', 'T2', 'Q2'/)
 #endif
 !-- Added by satoki for rijg
-  CHARACTER(vname_max),PARAMETER :: rijg_name(4) = &
-     (/'CX', 'FX', 'CY', 'FY'/)  ! rigu, rigv, rjgu, rjgv
+  CHARACTER(vname_max),PARAMETER :: rijg_name(2) = &
+     (/'x', 'y'/)  ! rigu=rigv, rjgu=rjgv
+!org  CHARACTER(vname_max),PARAMETER :: rijg_name(4) = &
+!org     (/'CX', 'FX', 'CY', 'FY'/)  ! rigu, rigv, rjgu, rjgv
 
   ! 
   !--- Variables for model coordinates
@@ -975,24 +977,31 @@ subroutine read_history(filename,step,v3dg,v2dg,rigu,rigv,rjgu,rjgv)
     call HistoryGet( var1Dx,filename,trim(rijg_name(1)),step)
                    ! [OUT],  [IN]  ,     [IN]         ,[IN]
     rigu(1+IHALO:nlon+IHALO) = var1Dx(:)/DX + 1.0_r_size
+    rigu(1:1+IHALO-1) = (/((rigu(1+IHALO)-dble(1+IHALO-i)),i=1,1+IHALO-1)/)
+    rigu(nlon+IHALO+1:nlonh) = (/((rigu(nlon+IHALO)+dble(i-(nlon+IHALO))),i=nlon+IHALO+1,nlonh)/)
+    !org if (LOG_LEVEL >= 1) then
+    !org   write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(2))  ! rigv
+    !org end if
+    !org call HistoryGet( var1Dx,filename,trim(rijg_name(2)),step)
+    !org                ! [OUT],  [IN]  ,     [IN]         ,[IN]
+    !org rigv(1+IHALO:nlon+IHALO) = var1Dx(:)/DX + 1.0_r_size
+    rigv(1:nlonh) = rigu(1:nlonh)
     if (LOG_LEVEL >= 1) then
-      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(2))  ! rigv
+      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(2))  ! rjgu
+    !org  write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(3))  ! rjgu
     end if
-    call HistoryGet( var1Dx,filename,trim(rijg_name(2)),step)
-                   ! [OUT],  [IN]  ,     [IN]         ,[IN]
-    rigv(1+IHALO:nlon+IHALO) = var1Dx(:)/DX + 1.0_r_size
-    if (LOG_LEVEL >= 1) then
-      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(3))  ! rjgu
-    end if
-    call HistoryGet( var1Dy,filename,trim(rijg_name(3)),step)
+    call HistoryGet( var1Dy,filename,trim(rijg_name(2)),step)
                    ! [OUT],  [IN]  ,     [IN]         ,[IN]
     rjgu(1+JHALO:nlat+JHALO) = var1Dy(:)/DY + 1.0_r_size
-    if (LOG_LEVEL >= 1) then
-      write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(4))  ! rjgv
-    end if
-    call HistoryGet( var1Dy,filename,trim(rijg_name(4)),step)
+    rjgu(1:1+JHALO-1) = (/((rjgu(1+JHALO)-dble(1+JHALO-i)),i=1,1+JHALO-1)/)
+    rjgu(nlat+JHALO+1:nlath) = (/((rjgu(nlat+JHALO)+dble(i-(nlat+JHALO))),i=nlat+JHALO+1,nlath)/)
+    !org if (LOG_LEVEL >= 1) then
+    !org   write(6,'(1x,A,A15)') '*** Read 1D var: ', trim(rijg_name(4))  ! rjgv
+    !org end if
+    !org call HistoryGet( var1Dy,filename,trim(rijg_name(4)),step)
                    ! [OUT],  [IN]  ,     [IN]         ,[IN]
-    rjgv(1+JHALO:nlat+JHALO) = var1Dy(:)/DY + 1.0_r_size
+    !org rjgv(1+IHALO:nlon+IHALO) = var1Dy(:)/DY + 1.0_r_size
+    rjgv(1:nlath) = rjgu(1:nlath)
   end if
 
   ! Communicate halo
@@ -1022,16 +1031,16 @@ subroutine read_history(filename,step,v3dg,v2dg,rigu,rigv,rjgu,rjgv)
     call COMM_wait ( v2dg(:,:,iv2d), iv2d )
   end do
 
-  if(present(rigu))then  ! Added by satoki
-    do i = IHALO, 1, -1
-      rigu(i) = rigu(1+IHALO) - real(IHALO-i+1)
-      rigv(i) = rigv(1+IHALO) - real(IHALO-i+1)
-    end do
-    do j = JHALO, 1, -1
-      rjgu(i) = rjgu(1+JHALO) - real(JHALO-j+1)
-      rjgv(i) = rjgv(1+JHALO) - real(JHALO-j+1)
-    end do
-  end if
+!org  if(present(rigu))then  ! Added by satoki
+!org    do i = IHALO, 1, -1
+!org      rigu(i) = rigu(1+IHALO) - real(IHALO-i+1)
+!org      rigv(i) = rigv(1+IHALO) - real(IHALO-i+1)
+!org    end do
+!org    do j = JHALO, 1, -1
+!org      rjgu(i) = rjgu(1+JHALO) - real(JHALO-j+1)
+!org      rjgv(i) = rjgv(1+JHALO) - real(JHALO-j+1)
+!org    end do
+!org  end if
 
   ! Save topo for later use
   !-------------
