@@ -213,7 +213,7 @@ SUBROUTINE Trans_XtoY_H08VT(slot_v,procd_v,rig_tcobs,rjg_tcobs,rz1,rz2,  &
         !-- [NOTE]: (rigv, rjgu) is identical to each scalar point. 
 
 !(debug) write(*,*) "(debug) satoki: ",nlonh, nlath, rig_rt, rjg_rt,  &
-  &                      rigv, rjgu 
+!(debug)  &                      rigv, rjgu 
           call rgrt_floor( nlonh, nlath, rig_rt, rjg_rt,  &
   &                        rigv, rjgu, i_rigm, j_rjgm, rigm, rjgm )
 

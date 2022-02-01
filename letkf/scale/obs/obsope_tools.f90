@@ -476,9 +476,6 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
         n2 = bsna(islot,   myrank_d) - bsna(SLOT_START-1, myrank_d)
         slot_nobsg = sum(bsn(islot, :))
 
-        allocate ( tmp_obsdp_H08vt (slot_nobsg) )  ! Add by satoki
-        allocate ( tmp_obsgp_H08vt (slot_nobsg,nprocs_d) )  ! Add by satoki
-
         if (slot_nobsg <= 0) then
           write (6, '(A)') ' -- no observations found in this time slot... do not need to read model data'
           cycle
@@ -496,6 +493,9 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 
         write (timer_str, '(A30,I4,A7,I4,A2)') 'obsope_cal:read_ens_history(t=', it, ', slot=', islot, '):'
         call mpi_timer(trim(timer_str), 2)
+
+        allocate ( tmp_obsdp_H08vt (slot_nobsg) )  ! Add by satoki
+        allocate ( tmp_obsgp_H08vt (slot_nobsg,nprocs_d) )  ! Add by satoki
 
         tmp_nobsd_H08vt = 0  ! Add by satoki
         tmp_obsdp_H08vt = 0  ! Add by satoki
@@ -705,146 +705,146 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 #endif
 !!!          ENDIF ! H08
 
-          !---------------------------------------------------------------------
-          ! Calculate H(x) for H08VT (Added by Satoki Tsujino)
-          !---------------------------------------------------------------------
-!          write (6, '(A,I10)') ' -- # obs in the slot = ', slot_nobsg
-!          write (6, '(A,I6,A,I6,A,I10)') ' -- # obs in the slot and processed by rank ', myrank, ' (subdomain #', myrank_d, ') = ', bsn(islot, myrank_d)
+        !---------------------------------------------------------------------
+        ! Calculate H(x) for H08VT (Added by Satoki Tsujino)
+        !---------------------------------------------------------------------
+!        write (6, '(A,I10)') ' -- # obs in the slot = ', slot_nobsg
+!        write (6, '(A,I6,A,I6,A,I10)') ' -- # obs in the slot and processed by rank ', myrank, ' (subdomain #', myrank_d, ') = ', bsn(islot, myrank_d)
 
-!org          if(myrank_e == 0)then
-            !-- Allocate internal working variables
-            !-- [Note]: Number of the array element is greater than that used 
-            !--         in real (=nprof_H08vt still not defined here) for safety
-            ALLOCATE(ri_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(rj_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(lon_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(lat_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(rad_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(lev_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(lev2_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(valid_H08vt(slot_nobsg,nprocs_d))
+!org      if(myrank_e == 0)then
+        !-- Allocate internal working variables
+        !-- [Note]: Number of the array element is greater than that used 
+        !--         in real (=nprof_H08vt still not defined here) for safety
+        ALLOCATE(ri_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(rj_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(lon_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(lat_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(rad_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(lev_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(lev2_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(valid_H08vt(slot_nobsg,nprocs_d))
 
-            ri_H08vt = 0.0
-            rj_H08vt = 0.0
-            lon_H08vt = 0.0
-            lat_H08vt = 0.0
-            rad_H08vt = 0.0
-            lev_H08vt = 0.0
-            lev2_H08vt = 0.0
-            valid_H08vt = .false.
+        ri_H08vt = 0.0
+        rj_H08vt = 0.0
+        lon_H08vt = 0.0
+        lat_H08vt = 0.0
+        rad_H08vt = 0.0
+        lev_H08vt = 0.0
+        lev2_H08vt = 0.0
+        valid_H08vt = .false.
 
             !-- 1. Gather all observations of H08VT
-!org            tmp_nobsg_H08vt = 0
-!org            call mpi_timer('', 2, barrier = MPI_COMM_d)
+!org        tmp_nobsg_H08vt = 0
+!org        call mpi_timer('', 2, barrier = MPI_COMM_d)
 
-!org            call MPI_AllReduce(tmp_nobsd_H08vt,tmp_nobsg_H08vt,1,MPI_INTEGER,MPI_SUM,MPI_COMM_d,ierr)  ! sum[rank(0-M)] -> rank(0-M)
+!org        call MPI_AllReduce(tmp_nobsd_H08vt,tmp_nobsg_H08vt,1,MPI_INTEGER,MPI_SUM,MPI_COMM_d,ierr)  ! sum[rank(0-M)] -> rank(0-M)
 !(debug) write(*,*) "satoki (debug1)", tmp_obsgp_H08vt(:,myrank_d+1)
-            call mpi_timer('', 2, barrier = MPI_COMM_d)
-            call MPI_ALLGATHER(tmp_obsdp_H08vt,slot_nobsg,MPI_INTEGER,  &
-  &                            tmp_obsgp_H08vt,slot_nobsg,MPI_INTEGER,  &
-  &                            MPI_COMM_d,ierr)  ! Share among all processes
+        call mpi_timer('', 2, barrier = MPI_COMM_d)
+        call MPI_ALLGATHER(tmp_obsdp_H08vt,slot_nobsg,MPI_INTEGER,  &
+  &                        tmp_obsgp_H08vt,slot_nobsg,MPI_INTEGER,  &
+  &                        MPI_COMM_d,ierr)  ! Share among all processes
 !(debug) write(*,*) "check1", tmp_obsdp_H08vt
 !(debug) write(*,*) "check2", tmp_obsgp_H08vt
 
-            !-- 2. Check available observations in each subdomain, and 
-            !--    Broadcast the observations to all subdomains
-            nprof_H08vt = 0  ! total count
-            !do nn = n1, n2
-!org            do nn = 1, tmp_nobsg_H08vt
+        !-- 2. Check available observations in each subdomain, and 
+        !--    Broadcast the observations to all subdomains
+        nprof_H08vt = 0  ! total count
+        !do nn = n1, n2
+!org        do nn = 1, tmp_nobsg_H08vt
 
-            do ns = 1, nprocs_d      ! For subdomain processes
-              do nt = 1, slot_nobsg  ! For observations in each subdomain  !  ここからチェック
-                nu = tmp_obsgp_H08vt(nt,ns)
+        do ns = 1, nprocs_d      ! For subdomain processes
+          do nt = 1, slot_nobsg  ! For observations in each subdomain  !  ここからチェック
+            nu = tmp_obsgp_H08vt(nt,ns)
 !(debug) write(*,*) "satoki check2, nt, ns, nu", nt, ns, nu
-                if( nu > 0 )then
+            if( nu > 0 )then
 
-                  if( myrank_d == ns - 1 )then  ! Enter in an MPI rank (ns - 1)
-                    iof = obsda%set(nu)
-                    nm = obsda%idx(nu)
+              if( myrank_d == ns - 1 )then  ! Enter in an MPI rank (ns - 1)
+                iof = obsda%set(nu)
+                nm = obsda%idx(nu)
 
-!not use                    if (.not. USE_OBS(obs(iof)%typ(nm))) then
-!not use                      obsda%qc(nu) = iqc_otype
-!not use                      cycle
-!not use                    end if
+!not use                if (.not. USE_OBS(obs(iof)%typ(nm))) then
+!not use                  obsda%qc(nu) = iqc_otype
+!not use                  cycle
+!not use                end if
 
-!org                nprof_H08vt = 0
-!org                nallprofvt = obs(iof)%nobs
+!org            nprof_H08vt = 0
+!org            nallprofvt = obs(iof)%nobs
 
-!org                ALLOCATE(tmp_ri_H08vt(nallprofvt))
-!org                ALLOCATE(tmp_rj_H08vt(nallprofvt))
-!org                ALLOCATE(tmp_lon_H08vt(nallprofvt))
-!org                ALLOCATE(tmp_lat_H08vt(nallprofvt))
-!org                ALLOCATE(tmp_rad_H08vt(nallprofvt))
-!org                ALLOCATE(tmp_lev_H08vt(nallprofvt))
-!org                ALLOCATE(tmp_lev2_H08vt(nallprofvt))
+!org            ALLOCATE(tmp_ri_H08vt(nallprofvt))
+!org            ALLOCATE(tmp_rj_H08vt(nallprofvt))
+!org            ALLOCATE(tmp_lon_H08vt(nallprofvt))
+!org            ALLOCATE(tmp_lat_H08vt(nallprofvt))
+!org            ALLOCATE(tmp_rad_H08vt(nallprofvt))
+!org            ALLOCATE(tmp_lev_H08vt(nallprofvt))
+!org            ALLOCATE(tmp_lev2_H08vt(nallprofvt))
 
 !(debug) write(*,*) "satoki tmp  check", nu, iof, obs(iof)%dif(nu)
-                    n = nu
-!org                do n = 1, nallprofvt
-                    if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
+                n = nu
+!org            do n = 1, nallprofvt
+                if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
 !(debug) write(*,*) "obs check satoki", obs(iof)%rad(n), obs(iof)%lon(n),  &
 !(debug)   &obs(iof)%lat(n), obs(iof)%lev(n), obs(iof)%lev2(n)
-                      call phys2ij(obs(iof)%lon(n),obs(iof)%lat(n),rig,rjg)  ! Search rig,rjg from lon,lat
-                      call rij_rank(rig,rjg,proc)  ! Calculate ril,rjl from myrank
+                  call phys2ij(obs(iof)%lon(n),obs(iof)%lat(n),rig,rjg)  ! Search rig,rjg from lon,lat
+                  call rij_rank(rig,rjg,proc)  ! Calculate ril,rjl from myrank
 
-                      nprof_H08vt = nprof_H08vt + 1 ! num of prof in myrank
+                  nprof_H08vt = nprof_H08vt + 1 ! num of prof in myrank
 
 !org (no need?)            if (myrank_d == proc) then
-!org                  nprof_H08vt = nprof_H08vt + 1 ! num of prof in myrank
-!org                  tmp_ri_H08vt(nprof_H08vt) = rig
-!org                  tmp_rj_H08vt(nprof_H08vt) = rjg
-!org                  tmp_lon_H08vt(nprof_H08vt) = obs(iof)%lon(n)
-!org                  tmp_lat_H08vt(nprof_H08vt) = obs(iof)%lat(n)
-!org                  tmp_rad_H08vt(nprof_H08vt) = obs(iof)%rad(n)
-!org                  tmp_lev_H08vt(nprof_H08vt) = obs(iof)%lev(n)
-!org                  tmp_lev2_H08vt(nprof_H08vt) = obs(iof)%lev2(n)
-                      mpi_bcast_v_H08vt(1) = rig
-                      mpi_bcast_v_H08vt(2) = rjg
-                      mpi_bcast_v_H08vt(3) = obs(iof)%lon(n)
-                      mpi_bcast_v_H08vt(4) = obs(iof)%lat(n)
-                      mpi_bcast_v_H08vt(5) = obs(iof)%rad(n)
-                      mpi_bcast_v_H08vt(6) = obs(iof)%lev(n)
-                      mpi_bcast_v_H08vt(7) = obs(iof)%lev2(n)
-                      valid_H08vt(nt,ns) = .true.
+!org              nprof_H08vt = nprof_H08vt + 1 ! num of prof in myrank
+!org              tmp_ri_H08vt(nprof_H08vt) = rig
+!org              tmp_rj_H08vt(nprof_H08vt) = rjg
+!org              tmp_lon_H08vt(nprof_H08vt) = obs(iof)%lon(n)
+!org              tmp_lat_H08vt(nprof_H08vt) = obs(iof)%lat(n)
+!org              tmp_rad_H08vt(nprof_H08vt) = obs(iof)%rad(n)
+!org              tmp_lev_H08vt(nprof_H08vt) = obs(iof)%lev(n)
+!org              tmp_lev2_H08vt(nprof_H08vt) = obs(iof)%lev2(n)
+                  mpi_bcast_v_H08vt(1) = rig
+                  mpi_bcast_v_H08vt(2) = rjg
+                  mpi_bcast_v_H08vt(3) = obs(iof)%lon(n)
+                  mpi_bcast_v_H08vt(4) = obs(iof)%lat(n)
+                  mpi_bcast_v_H08vt(5) = obs(iof)%rad(n)
+                  mpi_bcast_v_H08vt(6) = obs(iof)%lev(n)
+                  mpi_bcast_v_H08vt(7) = obs(iof)%lev2(n)
+                  valid_H08vt(nt,ns) = .true.
 
-!                      nobs_slot = nobs_slot + 1
-                      !obsda%set(nprof_H08vt) = iof
-                      obsda%set(nu) = iof
-                      !obsda%ri(nprof_H08vt) = rig
-                      !obsda%rj(nprof_H08vt) = rjg
-                      !obsda%idx(nprof_H08vt) = n  ! No check
-                      obsda%idx(nu) = n  ! No check
+!                  nobs_slot = nobs_slot + 1
+                  !obsda%set(nprof_H08vt) = iof
+                  obsda%set(nu) = iof
+                  !obsda%ri(nprof_H08vt) = rig
+                  !obsda%rj(nprof_H08vt) = rjg
+                  !obsda%idx(nprof_H08vt) = n  ! No check
+                  obsda%idx(nu) = n  ! No check
 
 !org (no need?)            end if ! [ myrank_d == proc ]
-                    end if ! [ obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot) ]
-!org                end do ! [ n = 1, nallprofvt ]
+                end if ! [ obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot) ]
+!org            end do ! [ n = 1, nallprofvt ]
 
-                  end if ! [ myrank_d == ns - 1 ]
+              end if ! [ myrank_d == ns - 1 ]
 
 !(debug) write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
-                  call MPI_BARRIER(MPI_COMM_d)
-                  call MPI_BCAST(nprof_H08vt,1, MPI_INTEGER, ns-1, MPI_COMM_d, ierr)
-                  call MPI_BCAST(valid_H08vt(nt,ns),1, MPI_LOGICAL, ns-1, MPI_COMM_d, ierr)
-                  call MPI_BCAST(mpi_bcast_v_H08vt, 7, MPI_r_size,  ns-1, MPI_COMM_d, ierr)
+              call MPI_BARRIER(MPI_COMM_d)
+              call MPI_BCAST(nprof_H08vt,1, MPI_INTEGER, ns-1, MPI_COMM_d, ierr)
+              call MPI_BCAST(valid_H08vt(nt,ns),1, MPI_LOGICAL, ns-1, MPI_COMM_d, ierr)
+              call MPI_BCAST(mpi_bcast_v_H08vt, 7, MPI_r_size,  ns-1, MPI_COMM_d, ierr)
 
 !(debug) write(*,*) "satoki bcast check4, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
-                  ri_H08vt(nt,ns)    = mpi_bcast_v_H08vt(1)
-                  rj_H08vt(nt,ns)    = mpi_bcast_v_H08vt(2)
-                  lon_H08vt(nt,ns)   = mpi_bcast_v_H08vt(3)
-                  lat_H08vt(nt,ns)   = mpi_bcast_v_H08vt(4)
-                  rad_H08vt(nt,ns)   = mpi_bcast_v_H08vt(5)
-                  lev_H08vt(nt,ns)   = mpi_bcast_v_H08vt(6)
-                  lev2_H08vt(nt,ns)  = mpi_bcast_v_H08vt(7)
+              ri_H08vt(nt,ns)    = mpi_bcast_v_H08vt(1)
+              rj_H08vt(nt,ns)    = mpi_bcast_v_H08vt(2)
+              lon_H08vt(nt,ns)   = mpi_bcast_v_H08vt(3)
+              lat_H08vt(nt,ns)   = mpi_bcast_v_H08vt(4)
+              rad_H08vt(nt,ns)   = mpi_bcast_v_H08vt(5)
+              lev_H08vt(nt,ns)   = mpi_bcast_v_H08vt(6)
+              lev2_H08vt(nt,ns)  = mpi_bcast_v_H08vt(7)
 
-!org                IF(nprof_H08vt >=1)THEN
+!org            IF(nprof_H08vt >=1)THEN
 
-!org                  ri_H08vt   = tmp_ri_H08vt(1:nprof_H08vt)
-!org                  rj_H08vt   = tmp_rj_H08vt(1:nprof_H08vt)
-!org                  lon_H08vt  = tmp_lon_H08vt(1:nprof_H08vt)
-!org                  lat_H08vt  = tmp_lat_H08vt(1:nprof_H08vt)
-!org                  rad_H08vt  = tmp_rad_H08vt(1:nprof_H08vt)
-!org                  lev_H08vt  = tmp_lev_H08vt(1:nprof_H08vt)
-!org                  lev2_H08vt = tmp_lev2_H08vt(1:nprof_H08vt)
+!org              ri_H08vt   = tmp_ri_H08vt(1:nprof_H08vt)
+!org              rj_H08vt   = tmp_rj_H08vt(1:nprof_H08vt)
+!org              lon_H08vt  = tmp_lon_H08vt(1:nprof_H08vt)
+!org              lat_H08vt  = tmp_lat_H08vt(1:nprof_H08vt)
+!org              rad_H08vt  = tmp_rad_H08vt(1:nprof_H08vt)
+!org              lev_H08vt  = tmp_lev_H08vt(1:nprof_H08vt)
+!org              lev2_H08vt = tmp_lev2_H08vt(1:nprof_H08vt)
 
             !------
 !              if (.not. USE_OBS(23)) then
@@ -852,112 +852,112 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 !              else
             !------
 
-                else
+            else
 
-                  exit
+              exit
 
-                end if  ! [ nu > 0 ]
+            end if  ! [ nu > 0 ]
 
-              end do  ! [ nt = 1, slot_nobsg ] ! For observations in each subdomain
-            end do  ! [ ns = 1, nprocs_d ]     ! For subdomain processes
+          end do  ! [ nt = 1, slot_nobsg ] ! For observations in each subdomain
+        end do  ! [ ns = 1, nprocs_d ]     ! For subdomain processes
 
 !(debug) write(*,*) "satoki check Enter Trans_XtoY_H08VT"
-            ALLOCATE(yobs_H08vt(slot_nobsg,nprocs_d))
-            ALLOCATE(qc_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(yobs_H08vt(slot_nobsg,nprocs_d))
+        ALLOCATE(qc_H08vt(slot_nobsg,nprocs_d))
 
 !(debug) write(*,*) "rad check satoki", rad_H08vt, nprof_H08vt
 !(debug) write(*,*) "satoki checkk, Enter Trans"!, OBS_IN_FORMAT(iof), iof
-            !-- 3. Enter the actual observation operator [H(x)] for H08VT
-            !--    [out]: yobs_H08vt,qc_H08vt for each subdomain
-            CALL Trans_XtoY_H08VT(slot_nobsg,nprocs_d,ri_H08vt,rj_H08vt,lev_H08vt,lev2_H08vt,  &
-  &                               lon_H08vt,lat_H08vt,rad_H08vt,valid_H08vt,  &
-  &                               rigu,rigv,rjgu,rjgv,v3dg,v2dg,'obs',yobs_H08vt,qc_H08vt,1)
+        !-- 3. Enter the actual observation operator [H(x)] for H08VT
+        !--    [out]: yobs_H08vt,qc_H08vt for each subdomain
+        CALL Trans_XtoY_H08VT(slot_nobsg,nprocs_d,ri_H08vt,rj_H08vt,lev_H08vt,lev2_H08vt,  &
+  &                           lon_H08vt,lat_H08vt,rad_H08vt,valid_H08vt,  &
+  &                           rigu,rigv,rjgu,rjgv,v3dg,v2dg,'obs',yobs_H08vt,qc_H08vt,1)
 !(debug) write(*,*) "satoki check Exit Trans_XtoY_H08VT"
 
-!            obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
+!        obsda%qc(nobs_0+1:nobs) = iqc_obs_bad
 
-!org            nsvt = 0
-!org            DO nt = 1, nprof_H08vt
-!            DO nn = nobs_0 + 1, nobs
-!org              nsvt = nsvt + 1
+!org        nsvt = 0
+!org        DO nt = 1, nprof_H08vt
+!        DO nn = nobs_0 + 1, nobs
+!org          nsvt = nsvt + 1
 
-!org              obsda%val(nt) = yobs_H08vt(nsvt)
-!org              obsda%qc(nt) = qc_H08vt(nsvt)
+!org          obsda%val(nt) = yobs_H08vt(nsvt)
+!org          obsda%qc(nt) = qc_H08vt(nsvt)
 
-!              if(obsda%qc(nn) == iqc_good)then
-!!!!!!              rig = obsda%ri(nn)
-!!!!!!              rjg = obsda%rj(nn)
+!          if(obsda%qc(nn) == iqc_good)then
+!!!!!!          rig = obsda%ri(nn)
+!!!!!!          rjg = obsda%rj(nn)
 
 ! -- tentative treatment around the TC center --
-!                dist_MSLP_TC = sqrt(((rig - MSLP_TC_rig) * DX)**2&
-!                                   +((rjg - MSLP_TC_rjg) * DY)**2)
+!            dist_MSLP_TC = sqrt(((rig - MSLP_TC_rig) * DX)**2&
+!                               +((rjg - MSLP_TC_rjg) * DY)**2)
 
-!                if(dist_MSLP_TC <= dist_MSLP_TC_MIN)then
-!                  obsda%qc(nn) = iqc_obs_bad
-!                endif
+!            if(dist_MSLP_TC <= dist_MSLP_TC_MIN)then
+!              obsda%qc(nn) = iqc_obs_bad
+!            endif
 
 ! -- Rejecting Himawari-8 obs over the buffer regions. --
-!                if((rig <= bris) .or. (rig >= brie) .or.&
-!                   (rjg <= brjs) .or. (rjg >= brje))then
-!                  obsda%qc(nn) = iqc_obs_bad
-!                endif
-!              endif
+!            if((rig <= bris) .or. (rig >= brie) .or.&
+!               (rjg <= brjs) .or. (rjg >= brje))then
+!              obsda%qc(nn) = iqc_obs_bad
+!            endif
+!          endif
 
 !
-!              write(6,'(a,f12.1,i9)')'H08 debug_plev',obsda%lev(nn),nn
+!          write(6,'(a,f12.1,i9)')'H08 debug_plev',obsda%lev(nn),nn
 
-!            END DO ! [ nt = 1, nprof_H08vt ]
+!        END DO ! [ nt = 1, nprof_H08vt ]
 
-            !-- 4. Return H(x) to obs variables in the "original" subdomain
-            !--    [NOTE]: yobs_H08vt,qc_H08vt have been shared among all subdomains
+        !-- 4. Return H(x) to obs variables in the "original" subdomain
+        !--    [NOTE]: yobs_H08vt,qc_H08vt have been shared among all subdomains
 !org (no longer share among all processes in the loop)            do ns = 1, nprocs_d      ! For subdomain processes
-            do nt = 1, slot_nobsg  ! For observations in each subdomain
+        do nt = 1, slot_nobsg  ! For observations in each subdomain
 
-              nu = tmp_obsgp_H08vt(nt,myrank_d+1)
+          nu = tmp_obsgp_H08vt(nt,myrank_d+1)
 
-              if( nu > 0 )then
+          if( nu > 0 )then
 
 !org (not need because automatically myrank_d == ns - 1)                if( myrank_d == ns - 1 )then  ! Enter in an MPI rank (ns - 1)
-                iof = obsda%set(nu)
-                nm = obsda%idx(nu)
+            iof = obsda%set(nu)
+            nm = obsda%idx(nu)
 
-                if (.not. USE_OBS(obs(iof)%typ(nm))) then
-                  cycle
-                end if
+            if (.not. USE_OBS(obs(iof)%typ(nm))) then
+              cycle
+            end if
 
-                n = nu
+            n = nu
 
-                if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
+            if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
 
-                  obsda%val(nu) = yobs_H08vt(nt,myrank_d+1)
-                  obsda%qc(nu) = qc_H08vt(nt,myrank_d+1)
+              obsda%val(nu) = yobs_H08vt(nt,myrank_d+1)
+              obsda%qc(nu) = qc_H08vt(nt,myrank_d+1)
 
-                end if ! [ obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot) ]
+            end if ! [ obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot) ]
 
-!org                end if ! [ myrank_d == ns - 1 ]
+!org            end if ! [ myrank_d == ns - 1 ]
 
-              else
+          else
 
-                exit
+            exit
 
-              end if  ! [ nu > 0 ]
+          end if  ! [ nu > 0 ]
 
-            end do  ! [ nt = 1, slot_nobsg ] ! For observations in each subdomain
-!org            end do  ! [ ns = 1, nprocs_d ]     ! For subdomain processes
+        end do  ! [ nt = 1, slot_nobsg ] ! For observations in each subdomain
+!org        end do  ! [ ns = 1, nprocs_d ]     ! For subdomain processes
 
-            DEALLOCATE(ri_H08vt,rj_H08vt)
-            DEALLOCATE(lon_H08vt,lat_H08vt)
-            DEALLOCATE(rad_H08vt)
-            DEALLOCATE(lev_H08vt,lev2_H08vt)
-            DEALLOCATE(valid_H08vt)
+        DEALLOCATE(ri_H08vt,rj_H08vt)
+        DEALLOCATE(lon_H08vt,lat_H08vt)
+        DEALLOCATE(rad_H08vt)
+        DEALLOCATE(lev_H08vt,lev2_H08vt)
+        DEALLOCATE(valid_H08vt)
 
-            DEALLOCATE(yobs_H08vt)
-            DEALLOCATE(qc_H08vt)
+        DEALLOCATE(yobs_H08vt)
+        DEALLOCATE(qc_H08vt)
 
 !org          ENDIF  ! [ myrank_e == 0 ]
 
-          deallocate ( tmp_obsdp_H08vt )
-          deallocate ( tmp_obsgp_H08vt )
+        deallocate ( tmp_obsdp_H08vt )
+        deallocate ( tmp_obsgp_H08vt )
 
 !org              DEALLOCATE(tmp_ri_H08vt,tmp_rj_H08vt)
 !org              DEALLOCATE(tmp_lon_H08vt,tmp_lat_H08vt)
