@@ -743,6 +743,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
         call MPI_ALLGATHER(tmp_obsdp_H08vt,slot_nobsg,MPI_INTEGER,  &
   &                        tmp_obsgp_H08vt,slot_nobsg,MPI_INTEGER,  &
   &                        MPI_COMM_d,ierr)  ! Share among all processes
+        call mpi_timer('tmp_obsgp_H08vt Allgather', 2, barrier = MPI_COMM_d)
 !(debug) write(*,*) "check1", tmp_obsdp_H08vt
 !(debug) write(*,*) "check2", tmp_obsgp_H08vt
 
@@ -753,7 +754,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 !org        do nn = 1, tmp_nobsg_H08vt
 
         do ns = 1, nprocs_d      ! For subdomain processes
-          do nt = 1, slot_nobsg  ! For observations in each subdomain  !  ここからチェック
+          do nt = 1, slot_nobsg  ! For observations in each subdomain
             nu = tmp_obsgp_H08vt(nt,ns)
 !(debug) write(*,*) "satoki check2, nt, ns, nu", nt, ns, nu
             if( nu > 0 )then
@@ -821,11 +822,12 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 
               end if ! [ myrank_d == ns - 1 ]
 
-!(debug) write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
-              call MPI_BARRIER(MPI_COMM_d)
+write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
+              call mpi_timer('', 2, barrier = MPI_COMM_d)
               call MPI_BCAST(nprof_H08vt,1, MPI_INTEGER, ns-1, MPI_COMM_d, ierr)
               call MPI_BCAST(valid_H08vt(nt,ns),1, MPI_LOGICAL, ns-1, MPI_COMM_d, ierr)
               call MPI_BCAST(mpi_bcast_v_H08vt, 7, MPI_r_size,  ns-1, MPI_COMM_d, ierr)
+              call mpi_timer('', 2, barrier = MPI_COMM_d)
 
 !(debug) write(*,*) "satoki bcast check4, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_H08vt
               ri_H08vt(nt,ns)    = mpi_bcast_v_H08vt(1)
@@ -861,6 +863,7 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
           end do  ! [ nt = 1, slot_nobsg ] ! For observations in each subdomain
         end do  ! [ ns = 1, nprocs_d ]     ! For subdomain processes
 
+        call mpi_timer('', 2, barrier = MPI_COMM_d)
 !(debug) write(*,*) "satoki check Enter Trans_XtoY_H08VT"
         ALLOCATE(yobs_H08vt(slot_nobsg,nprocs_d))
         ALLOCATE(qc_H08vt(slot_nobsg,nprocs_d))
