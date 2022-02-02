@@ -1136,8 +1136,8 @@ write(*,*) "val checj", obsda%nobs, tmpelm, obsda%val, obsda%qc, monit_nobs
     call MPI_ALLREDUCE(MPI_IN_PLACE, obsda_sort%ensval, nensobs*nobstotal, MPI_r_size, MPI_SUM, MPI_COMM_e, ierr)
 
     call mpi_timer('set_letkf_obs:extdomain_allreduce:', 2)
-write(*,*) "check obsda_sort", obsda_sort%ensval
   end if
+write(*,*) "check obsda_sort", obsda_sort%ensval
 
   if (LOG_LEVEL >= 3) then
     do n = 1, nobstotal
