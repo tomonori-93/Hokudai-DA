@@ -640,7 +640,6 @@ SUBROUTINE set_letkf_obs
     write (6, *)
     write (6,'(A,I6,A)') 'OBSERVATIONAL DEPARTURE STATISTICS (IN THIS SUBDOMAIN #', myrank_d, '):'
 
-write(*,*) "val checj", obsda%nobs, tmpelm, obsda%val, obsda%qc, monit_nobs
     call monit_dep(obsda%nobs, tmpelm, obsda%val, obsda%qc, monit_nobs, bias, rmse)
     call monit_print(monit_nobs, bias, rmse)
 
@@ -1137,7 +1136,6 @@ write(*,*) "val checj", obsda%nobs, tmpelm, obsda%val, obsda%qc, monit_nobs
 
     call mpi_timer('set_letkf_obs:extdomain_allreduce:', 2)
   end if
-write(*,*) "check obsda_sort", obsda_sort%ensval
 
   if (LOG_LEVEL >= 3) then
     do n = 1, nobstotal
