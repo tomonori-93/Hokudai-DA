@@ -48,6 +48,8 @@ elif [ "$PRESET" = 'K_micro' ]; then
 #elif [ "$PRESET" = 'K_interact' ]; then
 #  ...
 elif [ "$PRESET" = 'FX1000' ]; then
+  NODELIST_TYPE='(0)'  # add by satoki
+  DISK_MODE=2  # add by satoki
   MPI_TYPE='K'
 elif [ "$PRESET" = 'OFP' ]; then
   NODELIST_TYPE='machinefile'
@@ -181,8 +183,7 @@ done
 
 #-------------------------------------------------------------------------------
 
-USE_INIT_FROM_BDY=1
-#ORG satoki USE_INIT_FROM_BDY=0
+USE_INIT_FROM_BDY=0
 if (((OCEAN_INPUT == 1 && OCEAN_FORMAT == 99) || \
      (LAND_INPUT == 1 && LAND_FORMAT == 99))); then
   USE_INIT_FROM_BDY=1
@@ -235,7 +236,7 @@ fi
 #===============================================================================
 # Definition of sub-directories
 
-SCRP_DIR="$DIR/run"              # Job script directory
+SCRP_DIR="$DIR/run-a"              # Job script directory
 COMMON_DIR="$DIR/common"         # Common program directory
 LETKF_DIR="$DIR/letkf"           # LETKF program directory
 OBSUTIL_DIR="$DIR/obs"           # Observation program directory
@@ -297,7 +298,7 @@ NODEFILE_DIR="$TMP/node"
 #-------------------------------------------------------------------------------
 
 DAT_SUBDIR="dat"
-RUN_SUBDIR="run"
+RUN_SUBDIR="run-a"
 OUT_SUBDIR="out"
 
 TMPDAT="$TMPROOT/${DAT_SUBDIR}"

@@ -18,8 +18,8 @@ job='cycle'
 #===============================================================================
 # Configuration
 
-. config.main || exit $?
-. config.${job} || exit $?
+. ./config.main || exit $?
+. ./config.${job} || exit $?
 
 . src/func_distribute.sh || exit $?
 . src/func_datetime.sh || exit $?
@@ -138,7 +138,7 @@ elif ((NNODES > 192)); then
 elif ((NNODES > 96)); then
   rscgrp="fx-large"
 elif ((NNODES > 24)); then
-  rscgrp="fx-midle"
+  rscgrp="fx-middle"
 else
   rscgrp="fx-small"
 fi
@@ -159,12 +159,13 @@ echo "cd \${PJM_O_WORKDIR}"
 export OMP_NUM_THREADS=${THREADS}
 export PARALLEL=${THREADS}
 export MPI_NUM_PROCS=$totalnp
-export OMP_STACKSIZE=512000
+export OMP_STACKSIZE=5120000
 module unload netcdf-c netcdf-fortran phdf5 hdf5
 module load netcdf-c/4.7.3 netcdf-fortran/4.5.2 phdf5/1.10.6 hdf5/1.10.6
 module list
 
-sh -x ./${job}.sh "$STIME" "$ETIME" "$ISTEP" "$FSTEP" "$CONF_MODE" || exit \$?
+sh ./${job}.sh "$STIME" "$ETIME" "$ISTEP" "$FSTEP" "$CONF_MODE" || exit \$?
+#sh -x ./${job}.sh "$STIME" "$ETIME" "$ISTEP" "$FSTEP" "$CONF_MODE" || exit \$?
 EOF
 
 #===============================================================================

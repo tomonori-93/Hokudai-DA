@@ -21,6 +21,7 @@
 #
 #===============================================================================
 
+#set -x
 cd "$(dirname "$0")"
 myname="$(basename "$0")"
 job='fcst'
@@ -28,8 +29,8 @@ job='fcst'
 #===============================================================================
 # Configuration
 
-. config.main || exit $?
-. config.${job} || exit $?
+. ./config.main || exit $?
+. ./config.${job} || exit $?
 
 . src/func_distribute.sh || exit $?
 . src/func_datetime.sh || exit $?
@@ -81,6 +82,7 @@ fi
 #===============================================================================
 # Determine the staging list and then stage in
 
+echo "Enter here satoki"
 if ((RUN_LEVEL <= 1)) && ((ISTEP == 1)); then
   echo "[$(datetime_now)] Initialization (stage in)" >&2
 
@@ -98,6 +100,7 @@ if ((RUN_LEVEL <= 1)) && ((ISTEP == 1)); then
 
   stage_in node || exit $?
 fi
+echo "Exit here satoki"
 
 #===============================================================================
 # Run cycles of forecasts
