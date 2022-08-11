@@ -48,8 +48,8 @@ elif [ "$PRESET" = 'K_micro' ]; then
 #elif [ "$PRESET" = 'K_interact' ]; then
 #  ...
 elif [ "$PRESET" = 'FX1000' ]; then
-  NODELIST_TYPE='(0)'  # add by satoki
-  DISK_MODE=2  # add by satoki
+  NODELIST_TYPE='(0)'
+  DISK_MODE=2
   MPI_TYPE='K'
 elif [ "$PRESET" = 'OFP' ]; then
   NODELIST_TYPE='machinefile'
@@ -152,7 +152,8 @@ SCALE_NP="${SCALE_NP[1]}"  # for backward compatibility
 #-------------------------------------------------------------------------------
 
 ADAPTINFL=${ADAPTINFL:-0}
-SPRD_OUT=${SPRD_OUT:-1}
+#ORG(satoki) SPRD_OUT=${SPRD_OUT:-1}
+SPRD_OUT=1
 RTPS_INFL_OUT=${RTPS_INFL_OUT:-0}
 NOBS_OUT=${NOBS_OUT:-0}
 
@@ -236,7 +237,7 @@ fi
 #===============================================================================
 # Definition of sub-directories
 
-SCRP_DIR="$DIR/run-a"              # Job script directory
+SCRP_DIR="$DIR/run"              # Job script directory
 COMMON_DIR="$DIR/common"         # Common program directory
 LETKF_DIR="$DIR/letkf"           # LETKF program directory
 OBSUTIL_DIR="$DIR/obs"           # Observation program directory
@@ -298,7 +299,7 @@ NODEFILE_DIR="$TMP/node"
 #-------------------------------------------------------------------------------
 
 DAT_SUBDIR="dat"
-RUN_SUBDIR="run-a"
+RUN_SUBDIR="run"
 OUT_SUBDIR="out"
 
 TMPDAT="$TMPROOT/${DAT_SUBDIR}"

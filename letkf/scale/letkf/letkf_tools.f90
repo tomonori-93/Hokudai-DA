@@ -137,6 +137,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
   var_local(:,7) = VAR_LOCAL_RADAR_REF(:)
   var_local(:,8) = VAR_LOCAL_RADAR_VR(:)
   var_local(:,9) = VAR_LOCAL_H08(:) ! H08
+  var_local(:,10) = VAR_LOCAL_H08_VT(:) ! H08_VT (add by satoki)
   var_local_n2nc_max = 1
   var_local_n2nc(1) = 1
   var_local_n2n(1) = 1
@@ -419,6 +420,10 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
             CALL obs_local(rig1(ij),rjg1(ij),gues3d(ij,ilev,mmean,iv3d_p),hgt1(ij,ilev),n, & !GYL
                            hdxf,rdiag,rloc,dep,nobsl,nobsl_t=nobsl_t,cutd_t=cutd_t,srch_q0=search_q0(:,n,ij)) !GYL
           end if                                                                       !GYL
+!satoki opt        if (LOG_LEVEL >= 3) then  ! temp. add by satoki
+!satoki opt          write (*,*) 'dx check', nobstotal, hdxf
+!satoki opt        end if
+
           IF(RELAX_ALPHA_SPREAD /= 0.0d0) THEN                                         !GYL
             if (DET_RUN) then                                                          !GYL
               CALL letkf_core(MEMBER,nobstotal,nobsl,hdxf,rdiag,rloc,dep,work3d(ij,ilev,n), & !GYL
@@ -443,6 +448,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
             end if                                                                     !GYL
           END IF                                                                       !GYL
           trans_done(n2nc) = .true.                                                    !GYL
+
           IF(NOBS_OUT) THEN                                                            !GYL
             work3dn(:,ij,ilev,n) = real(sum(nobsl_t, dim=1),r_size)                    !GYL !!! NOBS: sum over all variables for each report type
             work3dn(nobtype+1,ij,ilev,n) = real(nobsl_t(9,22),r_size)                  !GYL !!! NOBS: ref
@@ -1475,6 +1481,7 @@ subroutine obs_local(ri, rj, rlev, rz, nvar, hdxf, rdiag, rloc, dep, nobsl, depd
 
             nobsl = nobsl + 1
             hdxf(nobsl,:) = obsda_sort%ensval(1:MEMBER,iob)
+!satoki opt write(*,*) "nobsl_max_master ensval -> hdxf", iob, obsda_sort%ensval(1:MEMBER,iob)
             rdiag(nobsl) = nrdiag
             rloc(nobsl) = nrloc
             dep(nobsl) = obsda_sort%val(iob)
@@ -1595,6 +1602,7 @@ subroutine obs_local(ri, rj, rlev, rz, nvar, hdxf, rdiag, rloc, dep, nobsl, depd
                 
               if (rloc_tmp(iob) < 0.0d0) then
                 call obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic2, dist_tmp(iob), rloc_tmp(iob), rdiag_tmp(iob))
+!satoki opt write(*,*) "satoki check obs_local_cal, rloc_tmp", dist_tmp(iob), rloc_tmp(iob), rdiag_tmp(iob)
                 if (rloc_tmp(iob) == 0.0d0) cycle
               end if
 
@@ -1604,6 +1612,7 @@ subroutine obs_local(ri, rj, rlev, rz, nvar, hdxf, rdiag, rloc, dep, nobsl, depd
 
               nobsl_incr = nobsl_incr + 1
               nobs_use2(nobsl_incr) = iob
+!satoki opt write(*,*) "satoki check nobsl", nobsl_incr, nobs_use2(nobsl_incr)
             end do
           end if ! [ nn_steps(icm+1) > nn_steps(icm) ]
         end do ! [ do icm = 1, n_merge(ic) ]
@@ -1623,6 +1632,7 @@ subroutine obs_local(ri, rj, rlev, rz, nvar, hdxf, rdiag, rloc, dep, nobsl, depd
         end if
       end if
 
+!satoki opt write(*,*) "satoki fcheck nobsl", nobsl_incr
       if (nobsl_incr == 0) cycle
 
       if (nobsl_incr > nobsl_max_master) then
@@ -1638,6 +1648,7 @@ subroutine obs_local(ri, rj, rlev, rz, nvar, hdxf, rdiag, rloc, dep, nobsl, depd
         nobsl = nobsl + 1
         iob = nobs_use2(n)
         hdxf(nobsl,:) = obsda_sort%ensval(1:MEMBER,iob)
+!satoki opt write(*,*) "MAX_NOBS ensval -> hdxf", iob, obsda_sort%ensval(1:MEMBER,iob)
         rdiag(nobsl) = rdiag_tmp(iob)
         rloc(nobsl) = rloc_tmp(iob)
         dep(nobsl) = obsda_sort%val(iob)
@@ -1727,6 +1738,7 @@ subroutine obs_local(ri, rj, rlev, rz, nvar, hdxf, rdiag, rloc, dep, nobsl, depd
         if (present(depd)) then
           depd(nobsl) = obsda_sort%ensval(mmdetobs,iob)
         end if
+!satoki opt write(*,*) "else ensval -> hdxf", iob, obsda_sort%ensval(1:MEMBER,iob)
       end do
 
       if (present(nobsl_t)) then
@@ -1886,6 +1898,7 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
     else  ! the model grid is located in the observation layer
        nd_v = 0.0d0
     end if
+!satoki opt write(*,*) "check rz", rz, nd_v, obs(obset)%lev(obidx) , obs(obset)%lev2(obidx), vert_loc_ctype(ic), dist_zero_fac
   !-- Added an entry for H08vt (by satoki) to here ---
   else
     nd_v = ABS(LOG(obs(obset)%lev(obidx)) - LOG(rlev)) / vert_loc_ctype(ic)
