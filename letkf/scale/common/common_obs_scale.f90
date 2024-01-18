@@ -10,6 +10,7 @@ MODULE common_obs_scale
 !   .......... See git history for the following revisions
 !   02/23/2021 Satoki Tsujino    added a new ID for H08 Vt
 !   01/17/2022 Satoki Tsujino    added the entry for get_nobs_H08vt
+!   01/17/2024 Satoki Tsujino    added the entry for get_nobs_H08vr
 !
 !=======================================================================
 !
@@ -43,7 +44,7 @@ MODULE common_obs_scale
   IMPLICIT NONE
   PUBLIC
 
-  INTEGER,PARAMETER :: nid_obs_varlocal=10 !H08 and H08vt
+  INTEGER,PARAMETER :: nid_obs_varlocal=11 !H08 and H08vt/vr
 !ORG(satoki)  INTEGER,PARAMETER :: nid_obs_varlocal=9 !H08
 !
 ! conventional observations
@@ -74,21 +75,22 @@ MODULE common_obs_scale
 !
   INTEGER,PARAMETER :: id_h08ir_obs=8800
   INTEGER,PARAMETER :: id_h08vt_obs=8900  ! by satoki
+  INTEGER,PARAMETER :: id_h08vt_obs=8901  ! by satoki
 
   ! nid_obs in common_nml.f90 (satoki)
   INTEGER,PARAMETER :: elem_uid(nid_obs)= &
      (/id_u_obs, id_v_obs, id_t_obs, id_tv_obs, id_q_obs, id_rh_obs, &
        id_ps_obs, id_rain_obs, id_radar_ref_obs, id_radar_ref_zero_obs, id_radar_vr_obs, id_radar_prh_obs, &
-       id_H08IR_obs, id_tclon_obs, id_tclat_obs, id_tcmip_obs, id_H08VT_obs/)
+       id_H08IR_obs, id_tclon_obs, id_tclat_obs, id_tcmip_obs, id_H08VT_obs, id_H08VR_obs/)
 !ORG(satoki)       id_H08IR_obs, id_tclon_obs, id_tclat_obs, id_tcmip_obs/)
 
   CHARACTER(3),PARAMETER :: obelmlist(nid_obs)= &
      (/'  U', '  V', '  T', ' Tv', '  Q', ' RH', ' PS', 'PRC', 'REF', 'RE0', ' Vr', 'PRH',&
-       'H08', 'TCX', 'TCY', 'TCP', 'HVt'/)
+       'H08', 'TCX', 'TCY', 'TCP', 'HVt', 'HVr'/)
 !ORG(satoki)       'H08', 'TCX', 'TCY', 'TCP'/)
 
   CHARACTER(3),PARAMETER :: obelmlist_varlocal(nid_obs_varlocal)= &
-     (/'WND', '  T', 'MOI', ' PS', 'PRC', 'TCV', 'REF', ' Vr', 'H08', 'HVt'/)
+     (/'WND', '  T', 'MOI', ' PS', 'PRC', 'TCV', 'REF', ' Vr', 'H08', 'HVt', 'HVr'/)
 !ORG(satoki)     (/'WND', '  T', 'MOI', ' PS', 'PRC', 'TCV', 'REF', ' Vr', 'H08'/)
 
   ! Parameter 'nobtype' is set in common_nml.f90
@@ -97,7 +99,7 @@ MODULE common_obs_scale
        'VADWND', 'SATEMP', 'ADPSFC', 'SFCSHP', 'SFCBOG', &
        'SPSSMI', 'SYNDAT', 'ERS1DA', 'GOESND', 'QKSWND', &
        'MSONET', 'GPSIPW', 'RASSDA', 'WDSATR', 'ASCATW', &
-       'TMPAPR', 'PHARAD', 'H08IRB', 'TCVITL', 'H08VTA'/) ! H08
+       'TMPAPR', 'PHARAD', 'H08IRB', 'TCVITL', 'H08VTA', 'H08VRA'/) ! H08
 !ORG(satoki)       'TMPAPR', 'PHARAD', 'H08IRB', 'TCVITL'/) ! H08
 
   INTEGER,PARAMETER :: max_obs_info_meta = 3 ! maximum array size for type(obs_info)%meta
@@ -146,6 +148,7 @@ MODULE common_obs_scale
   character(obsformatlenmax), parameter :: obsfmt_radar    = 'RADAR'
   character(obsformatlenmax), parameter :: obsfmt_h08      = 'HIMAWARI8'
   character(obsformatlenmax), parameter :: obsfmt_h08vt    = 'H08VT'  ! add by satoki
+  character(obsformatlenmax), parameter :: obsfmt_h08vr    = 'H08VR'  ! add by satoki
 !  integer, parameter :: nobsformats = 3
 !  character(obsformatlenmax), parameter :: obsformat(nobsformats) = &
 !    (/obsfmt_prepbufr, obsfmt_radar, obsfmt_h08/)
@@ -222,6 +225,8 @@ function uid_obs(id_obs)
     uid_obs = 16
   case(id_h08vt_obs)  ! H08VT (adding by satoki)
     uid_obs = 17
+  case(id_h08vr_obs)  ! H08VR (adding by satoki)
+    uid_obs = 18
   case default
     uid_obs = -1     ! error
   end select
@@ -255,6 +260,8 @@ function uid_obs_varlocal(id_obs)
     uid_obs_varlocal = 9  ! H08
   case(id_h08vt_obs)      ! H08VT (adding by satoki)
     uid_obs_varlocal = 10
+  case(id_h08vr_obs)      ! H08VR (adding by satoki)
+    uid_obs_varlocal = 11
   case default
     uid_obs_varlocal = -1 ! error
   end select
@@ -1690,6 +1697,10 @@ subroutine monit_obs(v3dg,v2dg,topo,nobs,bias,rmse,monit_type,use_key,step)
       case (obsfmt_h08vt)
       !-------------------------------------------------------------------------
          write(*,*) "Under construction by satoki"
+      !=========================================================================
+      case (obsfmt_h08vr)
+      !-------------------------------------------------------------------------
+         write(*,*) "Under construction by satoki"
 #ifdef H08
       !=========================================================================
 !      case (obsfmt_h08)
@@ -2099,7 +2110,7 @@ SUBROUTINE obs_info_allocate(obs, extended)
   ALLOCATE( obs%err (obs%nobs) )
   ALLOCATE( obs%typ (obs%nobs) )
   ALLOCATE( obs%dif (obs%nobs) )
-  !-- For H08vt (added by satoki)
+  !-- For H08vt/vr (added by satoki)
   ALLOCATE( obs%lev2 (obs%nobs) )
   ALLOCATE( obs%rad (obs%nobs) )
 
@@ -2111,7 +2122,7 @@ SUBROUTINE obs_info_allocate(obs, extended)
   obs%err = 0.0d0
   obs%typ = 0
   obs%dif = 0.0d0
-  !-- For H08vt (added by satoki)
+  !-- For H08vt/vr (added by satoki)
   obs%lev2 = 0.0d0
   obs%rad = 0.0d0
 
@@ -2144,7 +2155,7 @@ SUBROUTINE obs_info_deallocate(obs)
   IF(ALLOCATED(obs%err)) DEALLOCATE(obs%err)
   IF(ALLOCATED(obs%typ)) DEALLOCATE(obs%typ)
   IF(ALLOCATED(obs%dif)) DEALLOCATE(obs%dif)
-  !-- For H08vt (added by satoki)
+  !-- For H08vt/vr (added by satoki)
   IF(ALLOCATED(obs%lev2)) DEALLOCATE(obs%lev2)
   IF(ALLOCATED(obs%rad)) DEALLOCATE(obs%rad)
 
@@ -2770,6 +2781,8 @@ subroutine read_obs_all(obs)
       call get_nobs_H08(trim(OBS_IN_NAME(iof)),obs(iof)%nobs) ! H08
     case (obsfmt_h08vt)
       call get_nobs_H08vt(trim(OBS_IN_NAME(iof)),obs(iof)%nobs) ! H08vt (by satoki)
+    case (obsfmt_h08vr)
+      call get_nobs_H08vr(trim(OBS_IN_NAME(iof)),obs(iof)%nobs) ! H08vr (by satoki)
     case default
       write(6,*) '[Error] Unsupported observation file format!'
       stop
@@ -2790,6 +2803,8 @@ subroutine read_obs_all(obs)
       call read_obs_H08(trim(OBS_IN_NAME(iof)),obs(iof)) ! H08
     case (obsfmt_h08vt)  ! Add by satoki
       call read_obs_H08vt(trim(OBS_IN_NAME(iof)),obs(iof)) ! H08vt
+    case (obsfmt_h08vr)  ! Add by satoki
+      call read_obs_H08vr(trim(OBS_IN_NAME(iof)),obs(iof)) ! H08vr
     end select
   end do ! [ iof = 1, OBS_IN_NUM ]
 
@@ -2828,6 +2843,8 @@ subroutine write_obs_all(obs, missing, file_suffix)
       call write_obs_H08(trim(filestr),obs(iof),missing=missing_) ! H08
     case (obsfmt_h08vt)  ! Added by satoki
       call write_obs_H08vt(trim(filestr),obs(iof),missing=missing_) ! H08vt
+    case (obsfmt_h08vr)  ! Added by satoki
+      call write_obs_H08vr(trim(filestr),obs(iof),missing=missing_) ! H08vr
     end select
   end do ! [ iof = 1, OBS_IN_NUM ]
 
@@ -3424,5 +3441,147 @@ SUBROUTINE write_obs_H08vt(cfile,obs,append,missing)
 
   RETURN
 END SUBROUTINE write_obs_H08vt
+
+!-- Read observation number for H08vr
+SUBROUTINE get_nobs_H08vr(cfile,nn)
+  IMPLICIT NONE
+  CHARACTER(*),INTENT(IN) :: cfile
+  INTEGER,INTENT(OUT) :: nn ! num of all H08vr obs
+  INTEGER :: iprof
+  INTEGER :: iunit
+  LOGICAL :: ex
+  INTEGER :: sz
+
+  nn = 0 
+  iprof = 0
+  iunit=91
+
+  INQUIRE(FILE=cfile,EXIST=ex)
+  IF(ex) THEN
+    OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='sequential')
+    
+!    READ(iunit,IOSTAT=ios)wk
+!    IF(ios /= 0) THEN 
+!      WRITE(6,'(3A)') '[Warning]',cfile,': Reading error -- skipped'
+!      RETURN
+!    END IF
+    
+! get file size by reading through the entire file... too slow for big files
+!-----------------------------
+!    DO
+!      READ(iunit,IOSTAT=ios) wk
+!      IF(ios /= 0) EXIT
+!      iprof = iprof + 1
+!      nn = nn + nch
+!    END DO
+!-----------------------------
+
+! get file size by INQUIRE statement... may not work for some older fortran compilers
+!-----------------------------
+    INQUIRE(UNIT=iunit, SIZE=sz)
+    IF (MOD(sz, r_sngl * (12)) /= 0) THEN
+      WRITE(6,'(3A)') '[Warning]',cfile,': Reading error -- skipped'
+      RETURN
+    END IF
+    iprof = sz / (r_sngl * (12))
+    nn = iprof
+!-----------------------------
+
+    WRITE(6,*)' H08vr FILE ', cfile
+    WRITE(6,'(I10,A)') nn,' OBSERVATIONS INPUT'
+    WRITE(6,'(A12,I10)') '   num of prof:',iprof
+    CLOSE(iunit)
+  ELSE
+    WRITE(6,'(2A)') cfile,' does not exist -- skipped'
+  END IF
+
+  RETURN
+END SUBROUTINE get_nobs_H08vr
+
+!-- Read observation data for H08vr
+SUBROUTINE read_obs_H08vr(cfile,obs)
+  IMPLICIT NONE
+  CHARACTER(*),INTENT(IN) :: cfile
+  TYPE(obs_info),INTENT(INOUT) :: obs
+  REAL(r_sngl) :: wk(10)
+!  REAL(r_sngl) :: tmp
+  INTEGER :: n,iunit
+
+  INTEGER :: nprof, np, ch
+
+  nprof = obs%nobs
+
+  iunit=91
+  OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='sequential')
+
+  DO n=1,nprof
+    READ(iunit) wk
+
+    obs%elm(n) = NINT(wk(1))
+    obs%lon(n) = REAL(wk(2),r_size)
+    obs%lat(n) = REAL(wk(3),r_size)
+    obs%rad(n) = REAL(wk(4),r_size)
+    obs%lev(n) = REAL(wk(5),r_size)
+    obs%lev2(n) = REAL(wk(6),r_size)
+    obs%dat(n) = REAL(wk(7),r_size)
+    obs%err(n) = REAL(wk(8),r_size)
+    obs%typ(n) = NINT(wk(9))
+    obs%dif(n) = REAL(wk(10),r_size)
+write(*,*) "read_obs_H08vr check", n, obs%elm(n), obs%lon(n), obs%lat(n),  &
+  &        obs%rad(n), obs%lev(n), obs%lev2(n), obs%dat(n), obs%err(n)
+
+  END DO
+  CLOSE(iunit)
+
+  RETURN
+END SUBROUTINE read_obs_H08vr
+
+!-- Write observation data for H08vr
+SUBROUTINE write_obs_H08vr(cfile,obs,append,missing)
+  IMPLICIT NONE
+  CHARACTER(*),INTENT(IN) :: cfile
+  TYPE(obs_info),INTENT(IN) :: obs
+  LOGICAL,INTENT(IN),OPTIONAL :: append
+  LOGICAL,INTENT(IN),OPTIONAL :: missing
+  LOGICAL :: append_
+  LOGICAL :: missing_
+  REAL(r_sngl) :: wk(10)
+  INTEGER :: n,iunit
+  INTEGER :: iprof, ns, ne
+
+  iunit=92
+  append_ = .false.
+  IF(present(append)) append_ = append
+  missing_ = .true.
+  IF(present(missing)) missing_ = missing
+
+  iprof = obs%nobs
+
+  IF(append_) THEN
+    OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='append')
+  ELSE
+    OPEN(iunit,FILE=cfile,FORM='unformatted',ACCESS='sequential')
+  END IF
+
+  DO n=1,iprof
+
+    wk(1) = REAL(obs%elm(n))
+    wk(2) = REAL(obs%lon(n),r_size)
+    wk(3) = REAL(obs%lat(n),r_size)
+    wk(4) = REAL(obs%rad(n),r_size)
+    wk(5) = REAL(obs%lev(n),r_size)
+    wk(6) = REAL(obs%lev2(n),r_size)
+    wk(7) = REAL(obs%dat(n),r_size)
+    wk(8) = REAL(obs%err(n),r_size)
+    wk(9) = REAL(obs%typ(n))
+    wk(10) = REAL(obs%dif(n),r_size)
+    WRITE(iunit) wk
+
+  ENDDO
+
+  CLOSE(iunit)
+
+  RETURN
+END SUBROUTINE write_obs_H08vr
 
 END MODULE common_obs_scale

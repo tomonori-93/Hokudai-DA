@@ -10,6 +10,8 @@ MODULE letkf_tools
 !   01/01/2014   Guo-Yuan Lien     merged to GFS-LETKF main development
 !   October 2014 Guo-Yuan Lien     modified for SCALE model
 !   ............ See git history for the following revisions
+!   MM/DD/YYYY   Satoki Tsujino    added an entry for H08vt (no record in history)
+!   01/17/2024   Satoki Tsujino    added an entry for H08vr
 !
 !=======================================================================
 !$USE OMP_LIB
@@ -138,6 +140,7 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
   var_local(:,8) = VAR_LOCAL_RADAR_VR(:)
   var_local(:,9) = VAR_LOCAL_H08(:) ! H08
   var_local(:,10) = VAR_LOCAL_H08_VT(:) ! H08_VT (add by satoki)
+  var_local(:,11) = VAR_LOCAL_H08_VR(:) ! H08_VR (add by satoki)
   var_local_n2nc_max = 1
   var_local_n2nc(1) = 1
   var_local_n2n(1) = 1
@@ -1900,6 +1903,17 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
     end if
 !satoki opt write(*,*) "check rz", rz, nd_v, obs(obset)%lev(obidx) , obs(obset)%lev2(obidx), vert_loc_ctype(ic), dist_zero_fac
   !-- Added an entry for H08vt (by satoki) to here ---
+  !-- Added an entry for H08vr (by satoki) from here ---
+  else if (obelm == id_h08vr_obs) then
+    if (ABS(obs(obset)%lev2(obidx)) < rz) then  ! the model grid is higher than the top height of the observation
+       nd_v = ABS(obs(obset)%lev2(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+    else if (ABS(obs(obset)%lev(obidx)) > rz) then  ! the model grid is lower than the bottom height of the observation
+       nd_v = ABS(obs(obset)%lev(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+    else  ! the model grid is located in the observation layer
+       nd_v = 0.0d0
+    end if
+!satoki opt write(*,*) "check rz", rz, nd_v, obs(obset)%lev(obidx) , obs(obset)%lev2(obidx), vert_loc_ctype(ic), dist_zero_fac
+  !-- Added an entry for H08vr (by satoki) to here ---
   else
     nd_v = ABS(LOG(obs(obset)%lev(obidx)) - LOG(rlev)) / vert_loc_ctype(ic)
   end if
@@ -1926,6 +1940,16 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
     nd_h = ABS(obs(obset)%rad(obidx) - radm) / hori_loc_ctype(ic)
   end if
   !-- Replace rdx, rdy, and nd_h for H08vt (by satoki) to here ---
+
+  !-- Replace rdx, rdy, and nd_h with relative distance (R) for H08vr (by satoki) from here ---
+  if (obelm == id_h08vr_obs) then
+    !-- Calculate the radial distance (radm) from the storm center (obsda_sort%ri,rj) at the model grid (ri,rj)
+    rdx = (ri - obs(obset)%ri(obidx)) * DX
+    rdy = (rj - obs(obset)%rj(obidx)) * DY
+    radm = sqrt(rdx*rdx + rdy*rdy)
+    nd_h = ABS(obs(obset)%rad(obidx) - radm) / hori_loc_ctype(ic)
+  end if
+  !-- Replace rdx, rdy, and nd_h for H08vr (by satoki) to here ---
 
   !--- reject obs by normalized horizontal distance
   if (nd_h > dist_zero_fac) then
