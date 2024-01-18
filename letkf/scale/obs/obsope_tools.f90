@@ -20,6 +20,7 @@ MODULE obsope_tools
 !    PRC_myrank
 !    MPI_COMM_d => LOCAL_COMM_WORLD
   USE common_obs_scale_H08VT
+  USE common_obs_scale_H08VR
   use scale_grid_index, only: &
     KHALO, IHALO, JHALO
 #ifdef H08

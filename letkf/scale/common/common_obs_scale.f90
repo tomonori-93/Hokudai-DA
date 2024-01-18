@@ -75,7 +75,7 @@ MODULE common_obs_scale
 !
   INTEGER,PARAMETER :: id_h08ir_obs=8800
   INTEGER,PARAMETER :: id_h08vt_obs=8900  ! by satoki
-  INTEGER,PARAMETER :: id_h08vt_obs=8901  ! by satoki
+  INTEGER,PARAMETER :: id_h08vr_obs=8901  ! by satoki
 
   ! nid_obs in common_nml.f90 (satoki)
   INTEGER,PARAMETER :: elem_uid(nid_obs)= &
