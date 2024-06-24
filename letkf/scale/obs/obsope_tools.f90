@@ -799,7 +799,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 !org            ALLOCATE(tmp_lev2_H08vt(nallprofvt))
 
 !(debug) write(*,*) "satoki tmp  check", nu, iof, obs(iof)%dif(nu)
-                n = nu
+!orig(2024/01/22)                n = nu
+                n = nm
 !org            do n = 1, nallprofvt
                 if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
 !(debug) write(*,*) "obs check satoki", obs(iof)%rad(n), obs(iof)%lon(n),  &
@@ -947,7 +948,8 @@ write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_
               cycle
             end if
 
-            n = nu
+!orig(2024/01/22)            n = nu
+            n = nm
 
             if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
 
@@ -1070,7 +1072,8 @@ write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_
 !org            ALLOCATE(tmp_lev2_H08vr(nallprofvr))
 
 !(debug) write(*,*) "satoki tmp  check", nu, iof, obs(iof)%dif(nu)
-                n = nu
+!orig(2024/01/22)                n = nu
+                n = nm
 !org            do n = 1, nallprofvr
                 if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
 !(debug) write(*,*) "obs check satoki", obs(iof)%rad(n), obs(iof)%lon(n),  &
@@ -1218,7 +1221,8 @@ write(*,*) "satoki bcast check3, nt, ns, nu", nt, ns, nu, myrank_d, mpi_bcast_v_
               cycle
             end if
 
-            n = nu
+!orig(2024/01/22)            n = nu
+            n = nm
 
             if (obs(iof)%dif(n) > slot_lb(islot) .and. obs(iof)%dif(n) <= slot_ub(islot)) then
 
