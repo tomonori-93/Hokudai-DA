@@ -57,6 +57,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   integer :: slot_nobsg
   integer :: tmp_nobsg_H08vt, tmp_nobsd_H08vt  ! add by satoki
   integer :: tmp_nobsg_H08vr, tmp_nobsd_H08vr  ! add by satoki
+  integer :: tmp_nobsg_H08ux, tmp_nobsd_H08ux  ! add by satoki
+  integer :: tmp_nobsg_H08vy, tmp_nobsd_H08vy  ! add by satoki
 
   integer :: ip, ibufs
   integer, allocatable :: cntr(:), dspr(:)
@@ -84,6 +86,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
   real(r_size) :: rig, rjg
   real(r_size) :: mpi_bcast_v_H08vt(7)  ! Temporary array for MPI_BCAST (Add by satoki)
   real(r_size) :: mpi_bcast_v_H08vr(7)  ! Temporary array for MPI_BCAST (Add by satoki)
+  real(r_size) :: mpi_bcast_v_H08ux(7)  ! Temporary array for MPI_BCAST (Add by satoki)
+  real(r_size) :: mpi_bcast_v_H08vy(7)  ! Temporary array for MPI_BCAST (Add by satoki)
 
   integer, allocatable :: qc_p(:)
 #ifdef H08
@@ -129,25 +133,31 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 #endif
 
   INTEGER :: proc, nobs_0
-! -- for Himawari-8 VT/VR obs (by satoki) --
-  INTEGER :: nsvt, nsvr
-  INTEGER :: nallprofvt, nallprofvr
-  INTEGER :: nprof_H08vt, nprof_H08vr ! num of H08vt/vr obs
+! -- for Himawari-8 VT/VR/UV obs (by satoki) --
+  INTEGER :: nsvt, nsvr, nsux, nsvy
+  INTEGER :: nallprofvt, nallprofvr, nallprofux, nallprofvy
+  INTEGER :: nprof_H08vt, nprof_H08vr, nprof_H08ux, nprof_H08vy ! num of H08vt/vr/uv obs
   INTEGER,ALLOCATABLE :: tmp_obsdp_H08vt(:),tmp_obsgp_H08vt(:,:)
   INTEGER,ALLOCATABLE :: tmp_obsdp_H08vr(:),tmp_obsgp_H08vr(:,:)
+  INTEGER,ALLOCATABLE :: tmp_obsdp_H08ux(:),tmp_obsgp_H08ux(:,:)
+  INTEGER,ALLOCATABLE :: tmp_obsdp_H08vy(:),tmp_obsgp_H08vy(:,:)
   REAL(r_size),ALLOCATABLE :: ri_H08vt(:,:),rj_H08vt(:,:)
   REAL(r_size),ALLOCATABLE :: lon_H08vt(:,:),lat_H08vt(:,:)
   REAL(r_size),ALLOCATABLE :: lev_H08vt(:,:),lev2_H08vt(:,:),rad_H08vt(:,:)
   REAL(r_size),ALLOCATABLE :: ri_H08vr(:,:),rj_H08vr(:,:)
   REAL(r_size),ALLOCATABLE :: lon_H08vr(:,:),lat_H08vr(:,:)
   REAL(r_size),ALLOCATABLE :: lev_H08vr(:,:),lev2_H08vr(:,:),rad_H08vr(:,:)
+  REAL(r_size),ALLOCATABLE :: ri_H08ux(:,:),rj_H08ux(:,:)
+  REAL(r_size),ALLOCATABLE :: lon_H08ux(:,:),lat_H08ux(:,:),lev_H08ux(:,:)
+  REAL(r_size),ALLOCATABLE :: ri_H08vy(:,:),rj_H08vy(:,:)
+  REAL(r_size),ALLOCATABLE :: lon_H08vy(:,:),lat_H08vy(:,:),lev_H08vy(:,:)
 !org  REAL(r_size),ALLOCATABLE :: tmp_ri_H08vt(:),tmp_rj_H08vt(:)
 !org  REAL(r_size),ALLOCATABLE :: tmp_lon_H08vt(:),tmp_lat_H08vt(:)
 !org  REAL(r_size),ALLOCATABLE :: tmp_lev_H08vt(:),tmp_lev2_H08vt(:),tmp_rad_H08vt(:)
 
-  REAL(r_size),ALLOCATABLE :: yobs_H08vt(:,:), yobs_H08vr(:,:)
-  INTEGER,ALLOCATABLE :: qc_H08vt(:,:), qc_H08vr(:,:)
-  LOGICAL,ALLOCATABLE :: valid_H08vt(:,:), valid_H08vr(:,:)
+  REAL(r_size),ALLOCATABLE :: yobs_H08vt(:,:),yobs_H08vr(:,:),yobs_H08ux(:,:),yobs_H08vy(:,:)
+  INTEGER,ALLOCATABLE :: qc_H08vt(:,:),qc_H08vr(:,:),qc_H08ux(:,:),qc_H08vy(:,:)
+  LOGICAL,ALLOCATABLE :: valid_H08vt(:,:),valid_H08vr(:,:),valid_H08ux(:,:),valid_H08vy(:,:)
 
 ! -- for TC vital assimilation --
 !  INTEGER :: obs_set_TCX, obs_set_TCY, obs_set_TCP ! obs set
@@ -206,6 +216,8 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
 
   mpi_bcast_v_H08vt = 0.0  ! Add by satoki
   mpi_bcast_v_H08vr = 0.0  ! Add by satoki
+  mpi_bcast_v_H08ux = 0.0  ! Add by satoki
+  mpi_bcast_v_H08vy = 0.0  ! Add by satoki
 
   ! Use all processes to compute the basic obsevration information
   ! (locations in model grids and the subdomains they belong to)
@@ -507,11 +519,19 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
         allocate ( tmp_obsgp_H08vt (slot_nobsg,nprocs_d) )  ! Add by satoki
         allocate ( tmp_obsdp_H08vr (slot_nobsg) )  ! Add by satoki
         allocate ( tmp_obsgp_H08vr (slot_nobsg,nprocs_d) )  ! Add by satoki
+        allocate ( tmp_obsdp_H08ux (slot_nobsg) )  ! Add by satoki
+        allocate ( tmp_obsgp_H08ux (slot_nobsg,nprocs_d) )  ! Add by satoki
+        allocate ( tmp_obsdp_H08vy (slot_nobsg) )  ! Add by satoki
+        allocate ( tmp_obsgp_H08vy (slot_nobsg,nprocs_d) )  ! Add by satoki
 
         tmp_nobsd_H08vt = 0  ! Add by satoki
         tmp_obsdp_H08vt = 0  ! Add by satoki
         tmp_nobsd_H08vr = 0  ! Add by satoki
         tmp_obsdp_H08vr = 0  ! Add by satoki
+        tmp_nobsd_H08ux = 0  ! Add by satoki
+        tmp_obsdp_H08ux = 0  ! Add by satoki
+        tmp_nobsd_H08vy = 0  ! Add by satoki
+        tmp_obsdp_H08vy = 0  ! Add by satoki
 
 !(ORG: remove due to H08vt satoki)!$OMP PARALLEL DO SCHEDULE(DYNAMIC,5) PRIVATE(nn,n,iof,ril,rjl,rk,rkz)
         do nn = n1, n2
@@ -575,6 +595,18 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
           !---------------------------------------------------------------------
             tmp_nobsd_H08vr = tmp_nobsd_H08vr + 1
             tmp_obsdp_H08vr(tmp_nobsd_H08vr) = nn
+
+          !=====================================================================
+          case (obsfmt_h08ux)  ! For H08UV (Added by satoki)
+          !---------------------------------------------------------------------
+            tmp_nobsd_H08ux = tmp_nobsd_H08ux + 1
+            tmp_obsdp_H08ux(tmp_nobsd_H08ux) = nn
+
+          !=====================================================================
+          case (obsfmt_h08vy)  ! For H08UV (Added by satoki)
+          !---------------------------------------------------------------------
+            tmp_nobsd_H08vy = tmp_nobsd_H08vy + 1
+            tmp_obsdp_H08vy(tmp_nobsd_H08vy) = nn
 
           !=====================================================================
 

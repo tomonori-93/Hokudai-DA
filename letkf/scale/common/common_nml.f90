@@ -8,6 +8,7 @@ MODULE common_nml
 !   .............   See git history for the following revisions
 !   02/23/2021 Satoki Tsujino    added a new ID for H08 Vt
 !   01/17/2024 Satoki Tsujino    added a new ID for H08 Vr
+!   06/24/2024 Satoki Tsujino    added a new ID for H08 UV
 !
 !===============================================================================
   use common, only: r_size
@@ -20,9 +21,9 @@ MODULE common_nml
   !----
   integer, parameter :: nv3d = 11    ! number of 3D state variables (in SCALE restart files)
   integer, parameter :: nv2d = 0     ! number of 2D state variables (in SCALE restart files)
-  integer, parameter :: nid_obs = 18 ! number of variable types
+  integer, parameter :: nid_obs = 20 ! number of variable types (2 for H08UV)
 !ORG(satoki)  integer, parameter :: nid_obs = 16 ! number of variable types
-  integer, parameter :: nobtype = 26 ! number of observation report types
+  integer, parameter :: nobtype = 28 ! number of observation report types (2 for H08UV)
 !ORG(satoki)  integer, parameter :: nobtype = 24 ! number of observation report types
   integer, parameter :: nch = 10     ! H08 Num of Himawari-8 (IR) channels
 
@@ -141,6 +142,8 @@ MODULE common_nml
   real(r_size) :: GROSS_ERROR_TCP = -1.0d0 ! debug ! < 0: same as GROSS_ERROR
   real(r_size) :: GROSS_ERROR_H08_VT = -1.0d0      ! < 0: same as GROSS_ERROR (adding by satoki)
   real(r_size) :: GROSS_ERROR_H08_VR = -1.0d0      ! < 0: same as GROSS_ERROR (adding by satoki)
+  real(r_size) :: GROSS_ERROR_H08_UX = -1.0d0      ! < 0: same as GROSS_ERROR (adding by satoki)
+  real(r_size) :: GROSS_ERROR_H08_VY = -1.0d0      ! < 0: same as GROSS_ERROR (adding by satoki)
 
   real(r_size) :: Q_UPDATE_TOP = 0.0d0     ! water vapor and hydrometeors are updated only below this pressure level (Pa)
   real(r_size) :: Q_SPRD_MAX = -1.0D0      ! maximum q (ensemble spread)/(ensemble mean) (only effective when > 0)
@@ -171,8 +174,8 @@ MODULE common_nml
   real(r_size) :: HORI_LOCAL(nobtype) = &
     (/500.0d3, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
        -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
-       -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
-                                       ! The last two parameters are for H08VT/VR (satoki)
+       -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
+                  ! The last three parameters are for H08VT/VR/UV (satoki)
 !ORG(satoki)       -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
 
   ! >0: localization length scale [ln(p) or m depends on obstype]
@@ -181,8 +184,8 @@ MODULE common_nml
   real(r_size) :: VERT_LOCAL(nobtype) = &
     (/ 0.4d0,   -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
       -1.0d0,   -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
-      -1.0d0, 1000.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
-                                        ! The last two parameters are for H08VT/VR (satoki)
+      -1.0d0, 1000.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
+                  ! The last three parameters are for H08VT/VR/UV (satoki)
 !ORG(satoki)      -1.0d0, 1000.0d0, -1.0d0, -1.0d0/)
 !      -1.0d0, 1000.0d0, -1.0d0,  0.0d0/)
 
@@ -192,8 +195,8 @@ MODULE common_nml
   real(r_size) :: TIME_LOCAL(nobtype) = &
     (/ 0.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
       -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
-      -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
-                                      ! The last two parameters are for H08VT/VR (satoki)
+      -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
+                  ! The last three parameters are for H08VT/VR/UV (satoki)
 !ORG(satoki)      -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
 
   real(r_size) :: HORI_LOCAL_RADAR_OBSNOREF = -1.0d0 ! <0: same as HORI_LOCAL(22=PHARAD)
@@ -207,8 +210,8 @@ MODULE common_nml
   integer :: MAX_NOBS_PER_GRID(nobtype) = &
     (/ 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, &
       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, &
-      -1, -1, -1, -1, -1, -1/)
-                      ! The last two parameters are for H08VT/VR (satoki)
+      -1, -1, -1, -1, -1, -1, -1, -1/)
+                      ! The last three parameters are for H08VT/VR/UV (satoki)
 !ORG(satoki)      -1, -1, -1, -1/)
 
   integer :: MAX_NOBS_PER_GRID_CRITERION = 1 ! 1: normalized 3D distance (from closest)
@@ -221,8 +224,8 @@ MODULE common_nml
   real(r_size) :: OBS_MIN_SPACING(nobtype) = &
     (/300.0d3, 100.0d3, 100.0d3, 150.0d3, 300.0d3, 150.0d3, 150.0d3, 100.0d3, 150.0d3, 150.0d3, &
       150.0d3, 150.0d3, 150.0d3, 150.0d3, 150.0d3, 150.0d3, 300.0d3, 150.0d3, 150.0d3, 150.0d3, &
-      150.0d3,   1.0d3,  15.0d3,1000.0d3,   1.0d3,   1.0d3/)
-                                          ! The last two parameters are for H08VT/VR (satoki)
+      150.0d3,   1.0d3,  15.0d3,1000.0d3,   1.0d3,   1.0d3,   1.0d3,   1.0d3/)
+                         ! The last three parameters are for H08VT/VR/UV (satoki)
 !ORG(satoki)      150.0d3,   1.0d3,  15.0d3,1000.0d3/)
 
   ! >0: optimal grid spacing for bucket sorting of observations
@@ -231,8 +234,8 @@ MODULE common_nml
   real(r_size) :: OBS_SORT_GRID_SPACING(nobtype) = &
     (/ 0.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
       -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, &
-      -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
-                                      ! The last two parameters are for H08VT/VR (satoki)
+      -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
+                      ! The last three parameters are for H08VT/VR/UV (satoki)
 !ORG(satoki)      -1.0d0, -1.0d0, -1.0d0, -1.0d0/)
 
   !--- PARAM_LETKF_VAR_LOCAL
@@ -247,6 +250,8 @@ MODULE common_nml
   real(r_size) :: VAR_LOCAL_H08(nv3d+nv2d)       = 1.0d0 ! H08
   real(r_size) :: VAR_LOCAL_H08_VT(nv3d+nv2d)    = 1.0d0 ! adding by satoki
   real(r_size) :: VAR_LOCAL_H08_VR(nv3d+nv2d)    = 1.0d0 ! adding by satoki
+  real(r_size) :: VAR_LOCAL_H08_UX(nv3d+nv2d)    = 1.0d0 ! adding by satoki
+  real(r_size) :: VAR_LOCAL_H08_VY(nv3d+nv2d)    = 1.0d0 ! adding by satoki
 
   !--- PARAM_LETKF_MONITOR
   logical :: DEPARTURE_STAT = .true.
@@ -254,6 +259,8 @@ MODULE common_nml
   logical :: DEPARTURE_STAT_H08 = .false.
   logical :: DEPARTURE_STAT_H08_VT = .false.  ! adding by satoki
   logical :: DEPARTURE_STAT_H08_VR = .false.  ! adding by satoki
+  logical :: DEPARTURE_STAT_H08_UX = .false.  ! adding by satoki
+  logical :: DEPARTURE_STAT_H08_VY = .false.  ! adding by satoki
   real(r_size) :: DEPARTURE_STAT_T_RANGE = 0.0d0   ! time range within which observations are considered in the departure statistics.
                                                    ! 0: no limit
   logical :: DEPARTURE_STAT_ALL_PROCESSES = .true. ! print the departure statistics by all processes?
@@ -332,6 +339,8 @@ MODULE common_nml
                                       5.0d0,5.0d0,5.0d0,5.0d0,5.0d0/) ! H08
   real(r_size) :: OBSERR_H08_VT = 5.0d0 ! (m/s)  adding by satoki
   real(r_size) :: OBSERR_H08_VR = 5.0d0 ! (m/s)  adding by satoki
+  real(r_size) :: OBSERR_H08_UX = 5.0d0 ! (m/s)  adding by satoki
+  real(r_size) :: OBSERR_H08_VY = 5.0d0 ! (m/s)  adding by satoki
 
   !--- PARAM_OBSSIM
   character(filelenmax) :: OBSSIM_IN_TYPE = 'history'
@@ -617,6 +626,8 @@ subroutine read_nml_letkf
     GROSS_ERROR_TCP, &
     GROSS_ERROR_H08_VT, &  ! adding by satoki
     GROSS_ERROR_H08_VR, &  ! adding by satoki
+    GROSS_ERROR_H08_UX, &  ! adding by satoki
+    GROSS_ERROR_H08_VY, &  ! adding by satoki
     Q_UPDATE_TOP, &
     Q_SPRD_MAX, &
     BOUNDARY_BUFFER_WIDTH, &
@@ -672,6 +683,12 @@ subroutine read_nml_letkf
   end if
   if (GROSS_ERROR_H08_VR < 0.0d0) then ! H08VR
     GROSS_ERROR_H08_VR = GROSS_ERROR
+  end if
+  if (GROSS_ERROR_H08_UX < 0.0d0) then ! H08UV
+    GROSS_ERROR_H08_UX = GROSS_ERROR
+  end if
+  if (GROSS_ERROR_H08_VY < 0.0d0) then ! H08UV
+    GROSS_ERROR_H08_VY = GROSS_ERROR
   end if
 
   if (trim(OBSDA_MEAN_IN_BASENAME) == '') then
@@ -837,7 +854,9 @@ subroutine read_nml_letkf_var_local
     VAR_LOCAL_RADAR_VR, &
     VAR_LOCAL_H08, & ! H08
     VAR_LOCAL_H08_VT, &  ! H08VT (satoki)
-    VAR_LOCAL_H08_VR     ! H08VR (satoki)
+    VAR_LOCAL_H08_VR, &  ! H08VR (satoki)
+    VAR_LOCAL_H08_UX, &  ! H08UV (satoki)
+    VAR_LOCAL_H08_VY     ! H08UV (satoki)
 !ORG(satoki)    VAR_LOCAL_H08 ! H08
 
   rewind(IO_FID_CONF)
@@ -870,6 +889,8 @@ subroutine read_nml_letkf_monitor
     DEPARTURE_STAT_H08, &
     DEPARTURE_STAT_H08_VT, &  ! adding by satoki
     DEPARTURE_STAT_H08_VR, &  ! adding by satoki
+    DEPARTURE_STAT_H08_UX, &  ! adding by satoki
+    DEPARTURE_STAT_H08_VY, &  ! adding by satoki
     DEPARTURE_STAT_T_RANGE, &
     DEPARTURE_STAT_ALL_PROCESSES, &
     OBSDEP_OUT, &
@@ -999,7 +1020,9 @@ subroutine read_nml_obs_error
     OBSERR_TCP, &
     OBSERR_H08, &    ! H08
     OBSERR_H08_VT, & ! H08VT (adding by satoki)
-    OBSERR_H08_VR    ! H08VR (adding by satoki)
+    OBSERR_H08_VR, & ! H08VR (adding by satoki)
+    OBSERR_H08_UX, & ! H08UV (adding by satoki)
+    OBSERR_H08_VY    ! H08UV (adding by satoki)
 !ORG(satoki)    OBSERR_H08    ! H08
 
   rewind(IO_FID_CONF)

@@ -12,6 +12,7 @@ MODULE letkf_tools
 !   ............ See git history for the following revisions
 !   MM/DD/YYYY   Satoki Tsujino    added an entry for H08vt (no record in history)
 !   01/17/2024   Satoki Tsujino    added an entry for H08vr
+!   06/24/2024   Satoki Tsujino    added an entry for H08uv
 !
 !=======================================================================
 !$USE OMP_LIB
@@ -141,6 +142,8 @@ SUBROUTINE das_letkf(gues3d,gues2d,anal3d,anal2d)
   var_local(:,9) = VAR_LOCAL_H08(:) ! H08
   var_local(:,10) = VAR_LOCAL_H08_VT(:) ! H08_VT (add by satoki)
   var_local(:,11) = VAR_LOCAL_H08_VR(:) ! H08_VR (add by satoki)
+  var_local(:,12) = VAR_LOCAL_H08_UX(:) ! H08_UV (add by satoki)
+  var_local(:,13) = VAR_LOCAL_H08_VY(:) ! H08_UV (add by satoki)
   var_local_n2nc_max = 1
   var_local_n2nc(1) = 1
   var_local_n2n(1) = 1
@@ -1914,6 +1917,10 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
     end if
 !satoki opt write(*,*) "check rz", rz, nd_v, obs(obset)%lev(obidx) , obs(obset)%lev2(obidx), vert_loc_ctype(ic), dist_zero_fac
   !-- Added an entry for H08vr (by satoki) to here ---
+  !-- Added an entry for H08uv (by satoki) from here ---
+  else if ((obelm == id_h08ux_obs).or.(obelm == id_h08vy_obs)) then
+    nd_v = ABS(obs(obset)%lev(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+  !-- Added an entry for H08uv (by satoki) to here ---
   else
     nd_v = ABS(LOG(obs(obset)%lev(obidx)) - LOG(rlev)) / vert_loc_ctype(ic)
   end if
@@ -1927,6 +1934,7 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   !
   ! Calculate normalized horizontal distances
   !
+  !-- In H08uv mode, we use this calculation (satoki)
   rdx = (ri - obs(obset)%ri(obidx)) * DX
   rdy = (rj - obs(obset)%rj(obidx)) * DY
   nd_h = sqrt(rdx*rdx + rdy*rdy) / hori_loc_ctype(ic)

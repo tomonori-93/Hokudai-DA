@@ -2,7 +2,8 @@ include ../configure.user
 
 OBJS    = SFMT.o common.o common_mpi.o common_mtx.o netlib.o common_sort.o common_rand.o common_letkf.o \
 	  common_ncio.o common_scale.o common_obs_scale.o common_mpi_scale.o \
-          common_obs_scale_H08VT.o common_obs_scale_H08VR.o common_nml.o
+          common_obs_scale_H08VT.o common_obs_scale_H08VR.o \
+          common_obs_scale_H08UV.o common_nml.o
           #common_precip.o
 
 ifeq ($(H08),T)
@@ -54,6 +55,8 @@ common_mpi_scale.o:	common_mpi_scale.f90 common.o common_nml.o common_mpi.o \
 common_obs_scale_H08VT.o:common_obs_scale_H08VT.f90 common.o common_nml.o common_scale.o common_mpi_scale.o common_obs_scale.o
 	$(FC) $(FOPTS) -c $< $(NETCDF_INC) $(SCALE_INC)
 common_obs_scale_H08VR.o:common_obs_scale_H08VR.f90 common.o common_nml.o common_scale.o common_mpi_scale.o common_obs_scale.o
+	$(FC) $(FOPTS) -c $< $(NETCDF_INC) $(SCALE_INC)
+common_obs_scale_H08UV.o:common_obs_scale_H08UV.f90 common.o common_nml.o common_scale.o common_mpi_scale.o common_obs_scale.o
 	$(FC) $(FOPTS) -c $< $(NETCDF_INC) $(SCALE_INC)
 #common_precip.o:	common_precip.f90 common.o common_scale.o common_letkf.o
 #	$(SFC) $(FOPTS) -c $<
