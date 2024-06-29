@@ -7,6 +7,7 @@ MODULE obsope_tools
 !   November 2014  Guo-Yuan Lien  created
 !   .............  See git history for the following revisions
 !   Added comments by Satoki Tsujino
+!   06/27/2024 Satoki Tsujino    added height check for H08UV
 !
 !=======================================================================
 !$USE OMP_LIB
@@ -531,7 +532,14 @@ SUBROUTINE obsope_cal(obsda_return, nobs_extern)
           !=====================================================================
           case (obsfmt_prepbufr)  ! For prepbufr (Comment by satoki)
           !---------------------------------------------------------------------
-            call phys2ijk(v3dg(:,:,:,iv3dd_p), obs(iof)%elm(n), ril, rjl, obs(iof)%lev(n), rk, obsda%qc(nn))
+            !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+            !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV)
+            if(((obs(iof)%elm(n)==id_u_obs).or.(obs(iof)%elm(n)==id_v_obs)).and. &
+  &           obs(iof)%typ(n)==4)then
+              call phys2ijkz(v3dg(:,:,:,iv3dd_hgt), ril, rjl, obs(iof)%lev(n), rk, obsda%qc(nn))
+            else  ! below is original code (by satoki)
+              call phys2ijk(v3dg(:,:,:,iv3dd_p), obs(iof)%elm(n), ril, rjl, obs(iof)%lev(n), rk, obsda%qc(nn))
+            end if
             if (obsda%qc(nn) == iqc_good) then
               call Trans_XtoY(obs(iof)%elm(n), ril, rjl, rk, &
                               obs(iof)%lon(n), obs(iof)%lat(n), v3dg, v2dg, obsda%val(nn), obsda%qc(nn))
@@ -1479,7 +1487,14 @@ SUBROUTINE obsmake_cal(obs)
               !=================================================================
               case (obsfmt_prepbufr)
               !-----------------------------------------------------------------
-                call phys2ijk(v3dg(:,:,:,iv3dd_p),obs(iof)%elm(n),ril,rjl,obs(iof)%lev(n),rk,iqc)
+                !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+                !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV)
+                if(((obs(iof)%elm(n)==id_u_obs).or.(obs(iof)%elm(n)==id_v_obs)).and. &
+  &               obs(iof)%typ(n)==4)then
+                  call phys2ijkz(v3dg(:,:,:,iv3dd_hgt),ril,rjl,obs(iof)%lev(n),rk,iqc)
+                else  ! below is original code (by satoki)
+                  call phys2ijk(v3dg(:,:,:,iv3dd_p),obs(iof)%elm(n),ril,rjl,obs(iof)%lev(n),rk,iqc)
+                end if
                 if (iqc == iqc_good) then
                   call Trans_XtoY(obs(iof)%elm(n),ril,rjl,rk, &
                                   obs(iof)%lon(n),obs(iof)%lat(n),v3dg,v2dg,obs(iof)%dat(n),iqc)

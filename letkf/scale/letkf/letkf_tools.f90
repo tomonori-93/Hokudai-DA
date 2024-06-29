@@ -12,6 +12,7 @@ MODULE letkf_tools
 !   ............ See git history for the following revisions
 !   MM/DD/YYYY   Satoki Tsujino    added an entry for H08vt (no record in history)
 !   01/17/2024   Satoki Tsujino    added an entry for H08vr
+!   06/27/2024   Satoki Tsujino    added an entry for H08UV
 !
 !=======================================================================
 !$USE OMP_LIB
@@ -1892,6 +1893,11 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   else if (obtyp == 23) then ! obtypelist(obtyp) == 'H08IRB'                ! H08
     nd_v = ABS(LOG(obsda_sort%lev(iob)) - LOG(rlev)) / vert_loc_ctype(ic)   ! H08 for H08IRB, use obsda2%lev(iob) for the base of vertical localization
 #endif
+  !-- obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+  !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV)
+  !-- *NOTE*: no check for OBS_IN_FORMAT here
+  else if(((obelm == id_u_obs).or.(obelm == id_v_obs)).and.obtyp == 4)then
+    nd_v = ABS(obs(obset)%lev(obidx) - rz) / vert_loc_ctype(ic)             ! for SATWND, use z-coordinate for vertical localization
   !-- Added an entry for H08vt (by satoki) from here ---
   else if (obelm == id_h08vt_obs) then
     if (ABS(obs(obset)%lev2(obidx)) < rz) then  ! the model grid is higher than the top height of the observation

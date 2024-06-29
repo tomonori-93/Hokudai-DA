@@ -11,6 +11,7 @@ MODULE common_obs_scale
 !   02/23/2021 Satoki Tsujino    added a new ID for H08 Vt
 !   01/17/2022 Satoki Tsujino    added the entry for get_nobs_H08vt
 !   01/17/2024 Satoki Tsujino    added the entry for get_nobs_H08vr
+!   06/27/2024 Satoki Tsujino    added height check for H08UV
 !
 !=======================================================================
 !
@@ -1673,8 +1674,15 @@ subroutine monit_obs(v3dg,v2dg,topo,nobs,bias,rmse,monit_type,use_key,step)
       !=========================================================================
       case (obsfmt_prepbufr)
       !-------------------------------------------------------------------------
-        call phys2ijk(v3dgh(:,:,:,iv3dd_p),obs(iset)%elm(iidx), &
-                      ril,rjl,obs(iset)%lev(iidx),rk,oqc(n))
+        !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+        !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV)
+        if(((obs(iset)%elm(iidx)==id_u_obs).or.(obs(iset)%elm(iidx)==id_v_obs)).and. &
+  &         obs(iset)%typ(iidx)==4)then
+          call phys2ijkz(v3dgh(:,:,:,iv3dd_hgt),ril,rjl,obs(iset)%lev(iidx),rk,oqc(n))
+        else  ! below is original code (by satoki)
+          call phys2ijk(v3dgh(:,:,:,iv3dd_p),obs(iset)%elm(iidx), &
+                        ril,rjl,obs(iset)%lev(iidx),rk,oqc(n))
+        end if
         if (oqc(n) == iqc_good) then
           call Trans_XtoY(obs(iset)%elm(iidx),ril,rjl,rk, &
                           obs(iset)%lon(iidx),obs(iset)%lat(iidx), &
@@ -2319,9 +2327,17 @@ SUBROUTINE read_obs(cfile,obs)
 write(*,*) "obs val check", n, wk
     SELECT CASE(NINT(wk(1)))
     CASE(id_u_obs)
-      wk(4) = wk(4) * 100.0 ! hPa -> Pa
+      !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+      !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV), so no change
+      if(NINT(wk(7))/=4)then  ! Add this "if" by satoki
+        wk(4) = wk(4) * 100.0 ! hPa -> Pa
+      end if
     CASE(id_v_obs)
-      wk(4) = wk(4) * 100.0 ! hPa -> Pa
+      !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+      !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV), so no change
+      if(NINT(wk(7))/=4)then  ! Add this "if" by satoki
+        wk(4) = wk(4) * 100.0 ! hPa -> Pa
+      end if
     CASE(id_t_obs)
       wk(4) = wk(4) * 100.0 ! hPa -> Pa
     CASE(id_tv_obs)
@@ -2402,9 +2418,17 @@ SUBROUTINE write_obs(cfile,obs,append,missing)
       wk(8) = REAL(obs%dif(n),r_sngl)
       SELECT CASE(NINT(wk(1)))
       CASE(id_u_obs)
-        wk(4) = wk(4) * 0.01 ! Pa -> hPa
+        !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+        !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV), so no change
+        if(NINT(wk(7))/=4)then  ! Add this "if" by satoki
+          wk(4) = wk(4) * 0.01 ! Pa -> hPa
+        end if
       CASE(id_v_obs)
-        wk(4) = wk(4) * 0.01 ! Pa -> hPa
+        !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+        !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV), so no change
+        if(NINT(wk(7))/=4)then  ! Add this "if" by satoki
+          wk(4) = wk(4) * 0.01 ! Pa -> hPa
+        end if
       CASE(id_t_obs)
         wk(4) = wk(4) * 0.01 ! Pa -> hPa
       CASE(id_tv_obs)
@@ -2539,9 +2563,17 @@ subroutine write_obs_dep(cfile, nobs, set, idx, qc, omb, oma)
     wk(11) = real(oma(n), r_sngl)
     select case (nint(wk(1)))
     case (id_u_obs)
-      wk(4) = wk(4) * 0.01 ! Pa -> hPa
+      !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+      !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV), so no change
+      if(NINT(wk(7))/=4)then  ! Add this "if" by satoki
+        wk(4) = wk(4) * 0.01 ! Pa -> hPa
+      end if
     case (id_v_obs)
-      wk(4) = wk(4) * 0.01 ! Pa -> hPa
+      !-- OBS_IN_FORMAT = 'PREPBUF' & obs%elm = id_{u,v}_obs & obs%typ = 'SATWND' (4)
+      !--  -> obs%lev = [m] (add by satoki for satellite AMV H08UV), so no change
+      if(NINT(wk(7))/=4)then  ! Add this "if" by satoki
+        wk(4) = wk(4) * 0.01 ! Pa -> hPa
+      end if
     case (id_t_obs)
       wk(4) = wk(4) * 0.01 ! Pa -> hPa
     case (id_tv_obs)
