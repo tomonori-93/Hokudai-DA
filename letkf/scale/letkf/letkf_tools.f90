@@ -13,6 +13,7 @@ MODULE letkf_tools
 !   MM/DD/YYYY   Satoki Tsujino    added an entry for H08vt (no record in history)
 !   01/17/2024   Satoki Tsujino    added an entry for H08vr
 !   06/27/2024   Satoki Tsujino    added an entry for H08UV
+!   07/08/2024   Satoki Tsujino    set upper limit of vert_loc above tropopause
 !
 !=======================================================================
 !$USE OMP_LIB
@@ -1898,10 +1899,22 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   !-- *NOTE*: no check for OBS_IN_FORMAT here
   else if(((obelm == id_u_obs).or.(obelm == id_v_obs)).and.obtyp == 4)then
     nd_v = ABS(obs(obset)%lev(obidx) - rz) / vert_loc_ctype(ic)             ! for SATWND, use z-coordinate for vertical localization
+    ! If lev + vert_loc > tropopause (= 18 km), vert_loc is changed internally (only here)
+    if (ABS(obs(obset)%lev(obidx))+vert_loc_ctype(ic)>18000.0) then
+       if (ABS(obs(obset)%lev(obidx)) < rz) then  ! the model grid is higher than the top height of the observation
+          write(*,*) "*** Enter adjustment of vert_loc_ctype"
+          nd_v = ABS(obs(obset)%lev(obidx) - rz) / (18000.0-ABS(obs(obset)%lev(obidx)))  ! Should check unit of vert_loc_ctype (rz is "m")
+       end if
+    end if
   !-- Added an entry for H08vt (by satoki) from here ---
   else if (obelm == id_h08vt_obs) then
     if (ABS(obs(obset)%lev2(obidx)) < rz) then  ! the model grid is higher than the top height of the observation
        nd_v = ABS(obs(obset)%lev2(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+       ! If lev2 + vert_loc > tropopause (= 18 km), vert_loc is changed internally (only here)
+       if (ABS(obs(obset)%lev2(obidx))+vert_loc_ctype(ic)>18000.0) then
+          write(*,*) "*** Enter adjustment of vert_loc_ctype"
+          nd_v = ABS(obs(obset)%lev2(obidx) - rz) / (18000.0-ABS(obs(obset)%lev2(obidx)))  ! Should check unit of vert_loc_ctype (rz is "m")
+       end if
     else if (ABS(obs(obset)%lev(obidx)) > rz) then  ! the model grid is lower than the bottom height of the observation
        nd_v = ABS(obs(obset)%lev(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
     else  ! the model grid is located in the observation layer
@@ -1913,6 +1926,11 @@ subroutine obs_local_cal(ri, rj, rlev, rz, nvar, iob, ic, ndist, nrloc, nrdiag)
   else if (obelm == id_h08vr_obs) then
     if (ABS(obs(obset)%lev2(obidx)) < rz) then  ! the model grid is higher than the top height of the observation
        nd_v = ABS(obs(obset)%lev2(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
+       ! If lev2 + vert_loc > tropopause (= 18 km), vert_loc is changed internally (only here)
+       if (ABS(obs(obset)%lev2(obidx))+vert_loc_ctype(ic)>18000.0) then
+          write(*,*) "*** Enter adjustment of vert_loc_ctype"
+          nd_v = ABS(obs(obset)%lev2(obidx) - rz) / (18000.0-ABS(obs(obset)%lev2(obidx)))  ! Should check unit of vert_loc_ctype (rz is "m")
+       end if
     else if (ABS(obs(obset)%lev(obidx)) > rz) then  ! the model grid is lower than the bottom height of the observation
        nd_v = ABS(obs(obset)%lev(obidx) - rz) / vert_loc_ctype(ic)  ! Should check unit of vert_loc_ctype (rz is "m")
     else  ! the model grid is located in the observation layer
