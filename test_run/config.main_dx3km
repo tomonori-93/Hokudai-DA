@@ -1,0 +1,186 @@
+#!/bin/bash
+#===============================================================================
+#
+#  Main settings for SCALE-LETKF scripts
+#
+#===============================================================================
+
+PRESET='FX1000'        # (Fixed) 'K' or 'K_rankdir' or 'K_micro' or 'FX1000'
+
+#===============================================================================
+
+DIR="$(cd "$(pwd)/.." && pwd)"              # Root directory of the SCALE-LETKF
+
+DDIR="$(cd "$(pwd)" && pwd)"    # Root directory of the test suite
+
+DOMNUM=1
+
+INDIR="$DDIR/exp/testcase_data" # Directory for SCALE-LETKF input (by satoki)
+OUTDIR="$DDIR/exp/testcase_dx2km_1h_eye"     # Directory for SCALE-LETKF output
+#ORG OUTDIR[2]="$DDIR/exp/testcase_d2_30km_4p"
+
+#===============================================================================
+# Location of model/data files
+
+SCALEDIR="/home/z44533r/data/scale/scale-5.2.6-satoki"     # Directory of the SCALE model
+DATADIR="$SCALEDIR/scale-rm/satoki-test/scale_database"   # Directory of the SCALE database
+#DATADIR="$DDIR/database"                                   # Directory of the SCALE database
+
+DATA_TOPO="$DDIR/exp/testcase_data/pp"         # Directory of the prepared topo files
+#ORG DATA_TOPO[2]="$DDIR/exp/testcase_d2_30km_4p_data"
+DATA_TOPO_BDY_SCALE=
+DATA_LANDUSE="$DDIR/exp/testcase_data/pp"      # Directory of the prepared landuse files
+#ORG DATA_LANDUSE[2]="$DDIR/exp/testcase_d2_30km_4p_data"
+DATA_BDY_SCALE=                                            # Directory of the boundary data in SCALE history format (parent domain)
+DATA_BDY_SCALE_PREP="$DDIR/exp/testcase_data"  # Directory of the prepared SCALE boundary files
+DATA_BDY_WRF="$DDIR/ncepfnl/wrfout"                        # Directory of the boundary data in WRF format
+DATA_BDY_NICAM=                                            # Directory of the boundary data in NICAM format (not finished)
+DATA_BDY_GRADS="$DDIR/exp/testcase_data"
+
+OBS="$DDIR/obs/eye/"                                           # Observation data in LETKF observation format
+OBSNCEP=
+
+#===============================================================================
+# model/data file options
+
+DET_RUN=0               # 0: Disable the deterministic run
+                        # 1: Enable  the deterministic run
+
+TOPO_FORMAT='prep'      # 'prep': Use prepared topo files in $DATA_TOPO
+#TOPO_FORMAT='GTOPO30'   # 'prep': Use prepared topo files in $DATA_TOPO
+                        # 'GTOPO30' (requires compatible 'config.nml.scale_pp')
+                        # 'DEM50M'  (requires compatible 'config.nml.scale_pp')
+
+LANDUSE_FORMAT='prep'   # 'prep': Use prepared landuse files in $DATA_LANDUSE
+#LANDUSE_FORMAT='GLCCv2' # 'prep': Use prepared landuse files in $DATA_LANDUSE
+                        # 'GLCCv2' (requires compatible 'config.nml.scale_pp')
+                        # 'LU100M' (requires compatible 'config.nml.scale_pp')
+LANDUSE_UPDATE=0        # 0: Time-invariant landuse files
+                        # 1: Time-variant landuse files
+
+BDY_FORMAT=0            # 0: SCALE boundary files (with exactly same domain settings; do not need additional preprocessing)
+                        # 1: SCALE history (requires compatible 'config.nml.scale_init')
+                        # 2: WRF           (requires compatible 'config.nml.scale_init')
+                        # 3: NICAM         (requires compatible 'config.nml.scale_init')
+                        # 4: GrADS         (requires compatible 'config.nml.scale_init')
+BDY_SCALE_DIR='hist'    # Directory name of the SCALE history files when $BDY_FORMAT = 1
+
+BDY_ENS=0               # 0: Fixed boundary files for all memebers
+                        # 1: Ensemble boundary files
+BDY_ROTATING=0          # 0: Use a same series of boundary files for all initial time
+                        # 1: Use different series of boundary files for different initial time
+
+BDYINT=21600
+BDYCYCLE_INT=21600
+
+PARENT_REF_TIME=
+
+ENABLE_PARAM_USER=0     # 0: Do not enable the 'PARAM_USER' section of the SCALE namelist
+                        # 1: Enable the 'PARAM_USER' section of the SCALE namelist (require 'config.nml.scale_user' and customized version of SCALE)
+
+OCEAN_INPUT=1           # 0: No ocean input (use cycling ocean variables)
+                        # 1: Update the ocean variables every cycle
+OCEAN_FORMAT=0          # 0: SCALE init files (with exactly same domain settings; do not need additional preprocessing)
+                        # 99: From the same file as used in generating the boundary conditions ($BDY_FORMAT)
+LAND_INPUT=1            # 0: No land input (use cycling land variables)
+                        # 1: Update the land variables every cycle
+LAND_FORMAT=0           # 0: SCALE init files (with exactly same domain settings; do not need additional preprocessing)
+                        # 99: From the same file as used in generating the boundary conditions ($BDY_FORMAT)
+
+OBSNUM=1
+OBSNAME[1]=obs
+OBSOPE_SEPARATE[1]=0
+
+#===============================================================================
+# Cycling settings
+
+### for 48h
+#WINDOW_S=172800      # SCALE forecast time when the assimilation window starts (second)
+#WINDOW_E=172800      # SCALE forecast time when the assimilation window ends (second)
+#LCYCLE=172800        # Length of a DA cycle (second)
+#LTIMESLOT=172800     # Timeslot interval for 4D-LETKF (second)
+
+### for 12h
+#WINDOW_S=43200      # SCALE forecast time when the assimilation window starts (second)
+#WINDOW_E=43200      # SCALE forecast time when the assimilation window ends (second)
+#LCYCLE=43200        # Length of a DA cycle (second)
+#LTIMESLOT=43200     # Timeslot interval for 4D-LETKF (second)
+
+### for 6h
+#WINDOW_S=43200      # SCALE forecast time when the assimilation window starts (second)
+#WINDOW_E=43200      # SCALE forecast time when the assimilation window ends (second)
+#LCYCLE=43200        # Length of a DA cycle (second)
+#LTIMESLOT=43200     # Timeslot interval for 4D-LETKF (second)
+
+### for 3h
+#WINDOW_S=10800      # SCALE forecast time when the assimilation window starts (second)
+#WINDOW_E=10800      # SCALE forecast time when the assimilation window ends (second)
+#LCYCLE=10800        # Length of a DA cycle (second)
+#LTIMESLOT=10800     # Timeslot interval for 4D-LETKF (second)
+
+### for 1h
+WINDOW_S=3600      # SCALE forecast time when the assimilation window starts (second)
+WINDOW_E=3600      # SCALE forecast time when the assimilation window ends (second)
+LCYCLE=3600        # Length of a DA cycle (second)
+LTIMESLOT=3600     # Timeslot interval for 4D-LETKF (second)
+
+#===============================================================================
+# Parallelization settings
+
+MEMBER=30          # Ensemble size
+
+NNODES=248         # Number of nodes
+PPN=8              # Number of processes per node
+
+THREADS=6          # Number of threads per process
+
+SCALE_NP=64        # Number of processes to run SCALE (comment by satoki: including all members)
+#ORG SCALE_NP[2]=4
+
+BGJOB_INT='0.1s'   # Interval of multiple background job submissions
+
+#===============================================================================
+# Temporary directories to store runtime files
+
+ONLINE_STGOUT=0             # Stage out right after each cycle (do not wait until the end of the job)?
+                            #  0: No
+                            #  1: Yes
+
+SYSNAME="$(basename $OUTDIR)"                # A unique name in the machine
+TMPSUBDIR="scale-letkf_${SYSNAME}" # (used to identify multiple runs in the same time)
+
+TMP="/home/z44533r/data/scale/scale-5.2.6-satoki/letkf-H08VT/scale/run/exp/testcase_dx2km_1h_eye" # Temporary directory shared among all nodes
+#TMP="/scratch" # Temporary directory shared among all nodes
+TMPS="$TMP"  # Temporary directory only on the server node
+#TMPL=
+
+CLEAR_TMP=0                 # Clear temporary directories after the completion of job?
+                            #  0: No
+                            #  1: Yes
+
+#===============================================================================
+# Environmental settings
+
+MPIRUN="mpiexec"
+if (which $MPIRUN > /dev/null 2>&1); then
+  MPIRUN=$(which $MPIRUN)
+fi
+
+SCP='cp -L'
+SCP_HOSTPREFIX=''
+#SCP="scp -q"
+#SCP_HOSTPREFIX="XXXX:"
+
+STAGE_THREAD=6
+TAR_THREAD=6
+
+PYTHON="python"
+
+#BUFRBIN=
+
+#===============================================================================
+# Machine-independent source file
+
+. ./config.rc
+
+#===============================================================================

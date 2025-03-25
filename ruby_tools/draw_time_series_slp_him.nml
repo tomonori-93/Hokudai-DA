@@ -1,0 +1,99 @@
+&lineopt
+lnum = 62
+lfname = '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/1h_himawari_R050_V01/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', '1_output/48h/hist.geo_total.tcenter', 'daperiod_slp.txt', 'preperiod_slp.txt'
+tlord = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+lcol = 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 2, 2
+lskip = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+lfact = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+lidx = 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 15, 15
+ltyp = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2
+lside = 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l'
+/
+
+&pointopt
+pnum = 1
+pfname = '0_data/bst_T1824.txt', '0_data/bst_T1824_tot.dat', '1_output/1h_eye_relobs_005/hist.geo_20180926-000000.bin.dat.tcenter', '1_output/1h_eye_relobs_005/hist.geo_20180926-120000.bin.dat.tcenter', '1_output/1h_eye_relobs_005/hist.geo_20180927-000000.bin.dat.tcenter', '1_output/1h_eye_relobs_005/hist.geo_20180927-120000.bin.dat.tcenter'
+tpord = 1, 9, 9, 9, 9
+pcol = 5, 10, 10, 10, 10
+pskip = 0, 0, 0, 0, 0
+pfact = 1.0, 1.0, 1.0, 1.0, 1.0
+pidx = 15, 25, 35, 45, 55
+ptyp = 16, 1, 1, 1, 1
+psiz = 0.03, 0.03, 0.03, 0.03, 0.03
+pside = 'l', 'l', 'l', 'l', 'l'
+/
+
+&vectoropt
+vnum = 0
+vfname = ''
+tvord = 1
+vxcol = 2
+vycol = 3
+vskip = 0
+vfact = 1.0
+vidx = 15
+vtyp = 1
+vecay = 1.0
+/
+
+&wbaropt
+wnum = 0
+wfname = ''
+twnord = 1
+twxord = 0
+wmncol = 2
+wmxcol = 3
+wskip = 0
+wfact = 1.0
+widx = 15
+wtyp = 1
+wsiz = 0.01
+wside = 'l'
+wmean_flag = .false.
+/
+
+&textopt
+txtfname = 'char_slp.txt'
+/
+
+&input
+title = ''
+!title = '1h_himawari_R050_V01'
+cmap = 1
+vlmin = 900.0
+vlmax = 985.0
+vlmnint = 10.0
+vlmjint = 20.0
+vllbl_num = 0, 0
+vllbl_val = 0.0, 0.0
+vllbl_cha = '', ''
+vllbl_mnv = 0.0, 0.0
+vrmin = 900.0
+vrmax = 980.0
+vrmnint = 10.0
+vrmjint = 20.0
+vrlbl_num = 0, 0
+vrlbl_val = 0.0, 1.0
+vrlbl_cha = '', ''
+vrlbl_mnv = 0.5, 1.5
+tmin = -3.5
+tmax = 8.0
+tmnint = 1.0
+tmjint = 2.0
+tfact = 1.0
+tlbl_num = 6, 6
+tlbl_val = -2.0, 0.0, 2.0, 4.0, 6.0, 8.0
+tlbl_cha = '12Z', '00Z26', '12Z', '00Z27', '12Z', '00Z28'
+tlbl_mnv = -3.0, -1.0, 1.0, 3.0, 5.0, 7.0
+yltitle = 'CP (hPa)'
+yrtitle = ''
+ylidx = 13
+yridx = 43
+xlogf = .false.
+ylogf = .false.
+IWS = 1
+vxint = 0.1, 0.9
+vyint = 0.1, 0.9
+sysfont = 'Nimbus Sans L 12'
+xtitle = 'September 2018'
+/

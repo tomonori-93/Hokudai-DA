@@ -1,0 +1,90 @@
+&ncval
+valc = 'pt'
+vall = 'potential temperature'
+valu = 'K'
+vec_flag = .false.
+vecc = '', ''
+vecl = '', ''
+vecu = '', ''
+axopt = 'xy'
+undefcress = -1.0e35
+vaxname = 'z'
+vuname = 'm'
+vlname = 'Height'
+/
+
+&input
+nx = 640
+ny = 720
+nz = 36
+xmin = 0.0
+ymin = 0.0
+zmin = 100.0
+dx = 3.0e3
+dy = 3.0e3
+dz = 450.0
+dt = 1
+fnumber = 30  ! ensemble member
+grd_rec = 6
+shade_num = 70
+cmin = 1.0
+cmax = 100.0
+contmin = 1000.0
+contmax = 1010.0
+/
+
+&filename
+hname = '1_output/1h_eye_A08_himawari//'
+footname = '/hist.dmp_20180928-120000.bin.dat'
+ininame = 0001
+grdname = '1_output/1h_eye_A08_himawari//hist.geo_20180928-120000.bin.dat'
+title_name = 'pressure and precipitation [mm h|-1"]'
+/
+
+&file_form
+form_typec = '(f6.1)'
+form_types = '(f5.1)'
+/
+
+&dcl_dump
+ldump = .false.
+lwait = .true.
+lwait1 = .true.
+IWS = 2
+cmap = 1
+log_color = .true.
+/
+
+&map_info
+lon_min = 122.5
+lat_min = 20.0
+dlon = 0.0228299
+dlat = 0.0225557
+/
+
+&val_cont
+d2valc = ''
+d3valc = '0000000010'  ! u(t
+ad2valc = ''
+ad3valc = ''
+/
+
+&option
+nnx = 1,200
+nny = 1,1
+nnz = 1,36
+/
+
+&factor
+sfact = 3.6e6
+cfact = 1.0e-2
+vxfact = 1.0
+vyfact = 1.0
+/
+
+&cress
+sthopt = -1
+dzmin = 200.0
+layer1 = 0.0
+layer2 = 17000.0
+/

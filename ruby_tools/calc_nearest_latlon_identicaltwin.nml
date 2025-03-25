@@ -1,0 +1,9 @@
+&input
+ listname = "list_nearest_latlon_identicaltwin.dat"
+ geoname = "1_output/48h/hist.geo_20180926-000000.bin.dat"
+ outname = "point_nearest_latlon.dat"
+ nx = 640
+ ny = 720
+ lonord = 3
+ latord = 2
+/

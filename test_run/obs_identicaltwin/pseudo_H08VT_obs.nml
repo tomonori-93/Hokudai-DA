@@ -1,0 +1,11 @@
+&opt
+obs_list = 'himawari_1-4km/obs_2018092706.csv'
+model_fname = 'Trami_tangential_winds.nc'
+model_vname = 'cpm80e'
+model_rname = 'r'
+model_tname = 't'
+obs_undef = -999.0e35
+model_undef = -999.0
+flag_relobs = .false.
+val_relobs = 0.1
+/

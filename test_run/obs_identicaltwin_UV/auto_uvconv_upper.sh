@@ -1,0 +1,77 @@
+#!/usr/bin/bash
+EXE=~/usr/local/CL_intel/bin/ruby
+EXE2=pseudo_H08UV_model
+SCRIPT=dcl_nml_change.rb
+NAMELIST=pseudo_H08UV_model_upper.nml
+VNAME=ininame
+export F_UFMTENDIAN="little:11"
+ulimit -s unlimited
+export OMP_NUM_THREADS=1
+export OMP_STACKSIZE=512000
+
+${EXE} ${SCRIPT} ${NAMELIST} r_in 60.0e3
+
+for TIME in \
+000000 \
+003600 \
+007200 \
+010800 \
+014400 \
+018000 \
+021600 \
+025200 \
+028800 \
+032400 \
+036000 \
+039600 \
+043200
+do
+   ${EXE} ${SCRIPT} ${NAMELIST} ${VNAME} ${TIME}
+   ./${EXE2} < ${NAMELIST} &
+   sleep 3
+done
+
+${EXE} ${SCRIPT} ${NAMELIST} r_in 100.0e3
+
+for TIME in \
+046800 \
+050400 \
+054000 \
+057600 \
+061200 \
+064800 \
+068400 \
+072000 \
+075600 \
+079200 \
+082800 \
+086400 \
+090000 \
+093600 \
+097200 \
+100800 \
+104400 \
+108000 \
+111600 \
+115200 \
+118800 \
+122400 \
+126000 \
+129600 \
+133200 \
+136800 \
+140400 \
+144000 \
+147600 \
+151200 \
+154800 \
+158400 \
+162000 \
+165600 \
+169200 \
+172800
+do
+   ${EXE} ${SCRIPT} ${NAMELIST} ${VNAME} ${TIME}
+   ./${EXE2} < ${NAMELIST} &
+   sleep 3
+done

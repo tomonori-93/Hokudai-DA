@@ -1,0 +1,6 @@
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.vr.united.bin.nc', 'r', 'z', 't', 'vr'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.w.united.bin.nc', 'r', 'z', 't', 'w'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.p.united.bin.nc', 'r', 'z', 't', 'p'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.pt.united.bin.nc', 'r', 'z', 't', 'pt'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.massstream.united.bin.nc', 'r', 'z', 't', 'dummy'
+1, 300, 1, 70

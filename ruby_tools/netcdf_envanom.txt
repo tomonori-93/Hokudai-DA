@@ -1,0 +1,4 @@
+&
+'1_output/1h_eye_A08_himawari//mean_ruby/mean_gues_20180928-120000.000.bin.pt.nc' '1_output/1h_eye_A08_himawari//mean_ruby/mean_gues_20180928-120000.000.bin.pt_pert.nc' 'r' 'z' 't' 1 98 100
+'pt'
+/

@@ -1,0 +1,106 @@
+&lineopt
+lnum = 0
+lfname = '0_data/bst_T1824_tot.dat', '1h/hist.geo_20180927-120000.bin.dat.tcenter', '12h/hist.geo_20180927-120000.bin.dat.tcenter', 
+tlord = 9, 9, 9
+lcol = 10, 10, 10
+lskip = 0, 0, 0, 0
+lfact = 1.0, 1.0, 1.0
+lidx = 15, 25, 45
+ltyp = 1, 1, 1
+lside = 'l', 'l', 'l'
+rlskip = 0, 0, 0, 0
+/
+
+&pointopt
+pnum = 8
+pfname = '1_output//48h/hist.geo_20180926-000000.bin.dat.tcenter', '1_output//48h/hist.geo_20180926-120000.bin.dat.tcenter', '1_output//48h/hist.geo_20180927-000000.bin.dat.tcenter', '1_output//48h/hist.geo_20180927-120000.bin.dat.tcenter', '1_output//48h/hist.geo_20180928-000000.bin.dat.tcenter', '1_output//48h/hist.geo_20180928-120000.bin.dat.tcenter', '0_data/bst_T1824_himawari.txt', '0_data/bst_T1824_himawari_fcst.txt', 
+!pfname = '1_output//1h_eye_A08_himawari/hist.geo_20180926-000000.bin.dat.tcenter', '1_output//1h_eye_A08_himawari/hist.geo_20180926-120000.bin.dat.tcenter', '1_output//1h_eye_A08_himawari/hist.geo_20180927-000000.bin.dat.tcenter', '1_output//1h_eye_A08_himawari/hist.geo_20180927-120000.bin.dat.tcenter', '0_data/bst_T1824_himawari.txt', 
+tpord = 9, 9, 9, 9, 9, 9, 9, 9
+pcol = 10, 10, 10, 10, 10, 10, 10, 10
+pskip = 0, 0, 0, 0, 0, 0, 0, 0
+pfact = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+pidx = 25, 35, 45, 55, 65, 75, 15, 25
+ptyp = 1, 1, 1, 1, 1, 1, 16, 16, 
+psiz = 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03
+pside = 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l'
+rpskip = 0, 0, 0, 0, 0, 0, 0, 0
+/
+
+&vectoropt
+vnum = 0
+vfname = ''
+tvord = 1
+vxcol = 0
+vycol = 0
+vskip = 0
+vfact = 1.0
+vidx = 15
+vtyp = 1
+vecay = 10.0
+/
+
+&wbaropt
+wnum = 0
+wfname = ''
+twnord = 1
+twxord = 0
+wmncol = 2
+wmxcol = 3
+wskip = 0
+wfact = 1.0
+widx = 15
+wtyp = 1
+wsiz = 0.01
+wside = 'l'
+wmean_flag = .false.
+rwskip = 0
+/
+
+&textopt
+txtfname = 'char_tot_himawari.txt'
+/
+
+&input
+title = '48h'
+cmap = 1
+vlmin = 20.0
+vlmax = 23.0
+vlmnint = 1.0
+vlmjint = 0.1
+vllbl_num = 0, 0
+vllbl_val = 0.0, 1.0
+vllbl_cha = '', ''
+vllbl_mnv = 0.5, 1.5
+vrmin = 900.0
+vrmax = 980.0
+vrmnint = 10.0
+vrmjint = 20.0
+vrlbl_num = 0, 0
+vrlbl_val = 0.0, 1.0
+vrlbl_cha = '', ''
+vrlbl_mnv = 0.5, 1.5
+tmin = 127.5
+tmax = 129.5
+tmnint = 1.0
+tmjint = 0.1
+tfact = 1.0
+tlbl_num = 0, 0
+tlbl_val = 0.0, 1.0
+tlbl_cha = '', ''
+tlbl_mnv = 0.5, 1.5
+yltitle = 'Latitude (\^{o}N)'
+yrtitle = ''
+ylidx = 13
+yridx = 43
+xlogf = .false.
+ylogf = .false.
+IWS = 2
+vxint = 0.25, 0.75
+vyint = 0.125, 0.875
+sysfont = 'Nimbus Sans L 12'
+xtitle = 'Longitude (\^{o}E)'
+gxnum = 0
+gxline = 0.0
+gynum = 0
+gyline = 0.0
+/

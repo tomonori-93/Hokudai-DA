@@ -1,0 +1,117 @@
+&dateopt
+dateflag = .false.
+iyear = 0000
+imonth = 00
+iday = 00
+ihour = 00
+imin = 00
+isec = 00
+cal_axis = 'y'
+mxitv = 50.0, 10.0
+myitv = 0.0, 0.0
+tonef = 'f'
+labelnum = 1, 7
+axlbl = 0.0
+cxlbl = ''
+aylbl = 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5
+cylbl = '00Z26', '06Z', '12Z', '18Z', '00Z27', '06Z', '12Z'
+ticknum = 1, 6
+axtck = 0.0
+aytck = 0.125, 0.375, 0.625, 0.875, 1.125, 1.375
+/
+
+&projection
+col_rev = .false.
+max_tab = 95999
+min_tab = 55999
+col_max = 95
+col_min = 15
+fix_flag = .true.
+fix_col = 60999, 70999, 75999, 80999, 85999, 90999
+fix_val = 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0
+tone_grid = 6
+/
+
+&input
+nx = 100
+ny = 1
+nz = 36
+xmin = 0.0
+ymin = 0.0
+zmin = 0.0
+dx = 3000.0
+dy = 2000.0
+dz = 500.0
+dt = 3600
+fnumber = 37
+grd_rec = 6
+shade_num = 13
+cmin = 0.0
+cmax = 100.0
+contmin = 0.0
+contmax = 100.0
+/
+
+&filename
+hname = 'JPN2.5KM2012082512Z.dmp.'
+footname = '.united.bin_Moveave.nc'
+ininame = 0000
+grdname = 'grdlist_identicaltwin_obsvt.txt'
+title_name = 'azimuthal mean w and Vr'
+/
+
+&file_form
+form_typec = '(f6.1)'
+form_types = '(f5.1)'
+/
+
+&dcl_dump
+ldump = .true.
+lwait = .false.
+lwait1 = .false.
+!ldump = .false.
+!lwait = .true.
+!lwait1 = .true.
+IWS = 2
+cmap = 75
+log_color = .false.
+sysfont = 'Nimbus Sans L 12'
+/
+
+&map_info
+lon_min = 122.5
+lat_min = 20.0
+dlon = 0.0228299
+dlat = 0.0225557
+/
+
+&val_cont
+d2valc = '00000000000000000000'
+d3valc = '00000000000000'
+ad2valc = '000000'
+ad3valc = ''
+/
+
+&option
+nnx = 1,100
+!nnx = 1,2240
+!nny = 1,2288
+nny = 1,1
+nnz = 8,8
+/
+
+&factor
+sfact = 1.0
+cfact = 1.0
+vxfact = 1.0e-3
+vyfact = 0.0000115740
+vxname = 'Potential Radius (km)'
+vyname = 'Potential Temperature (K)'
+/
+
+&cress
+sthopt = 0
+dzmin = 200.0
+layer1 = 0.0
+layer2 = 17000.0
+/

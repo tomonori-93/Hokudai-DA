@@ -1,0 +1,7 @@
+'1_output/1h_eye_A08/.vr/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'vr'
+'1_output/1h_eye_A08/.vt/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'vt'
+'', '', '', '', ''
+'', '', '', '', ''
+'1_output/1h_eye_A08/.ubar_budget/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'ubar'
+'1_output/1h_eye_A08/hist.geo_20180927-120000.bin.dat.tcenter.coriolis'
+'1_output/1h_eye_A08/hist.geo_20180927-120000.bin.dat.tcenter.ubar.txt'

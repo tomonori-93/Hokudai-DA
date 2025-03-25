@@ -1,0 +1,12 @@
+1, 1, -999.0, 0
+'../obs_identicaltwin/UV_.vt.grd.nc', '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 'vt', 0.0, 50.0, -998.0, -997.0, 6, 10, 1.0e0, 3.6e3, '(f3.0)', '(f4.1)', 'a', 4, 'Nature run Vt', 'r', 'z', 't', 'Radius (km)   ', 'September 2018'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 0.0, 0.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 10.0, 10.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 20.0, 20.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 30.0, 30.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 40.0, 40.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 50.0, 50.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 60.0, 60.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+&, '../obs_identicaltwin/UV_.vt.grd.nc', 'vt', 70.0, 70.0, 1, 1.0, '(f4.1)', 12, 1, 3.0, 1, 'x'
+%l, 'obs_identicaltwin_UV_drawline1.txt', 2, 1, 36, 2, 1, 0.001, 0.0000115740, 1
+%l, 'obs_identicaltwin_UV_drawline2.txt', 2, 1, 36, 2, 1, 0.001, 0.0000115740, 1

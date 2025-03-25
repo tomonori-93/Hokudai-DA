@@ -1,0 +1,135 @@
+&dateopt
+dateflag = .true.
+iyear = 2018
+imonth = 09
+iday = 26
+ihour = 12
+imin = 00
+isec = 00
+/
+
+&projection
+map_pro = 22
+posi = 30.0, 40.0, 131.5
+col_rev = .false.
+max_tab = 95999
+min_tab = 15999
+col_max = 90
+col_min = 10
+fix_flag = .true.
+fix_col = 25999, 35999, 45999, 50999, 60999, 65999, 75999, 85999
+fix_val = -1.0, -0.5, -0.25, -0.01, 0.0, 0.01, 0.25, 0.5, 1.0
+fixc_flag = .false.
+contour_num = 4
+fixc_val = 1.0, 2.0, 3.0, 4.0
+fixc_idx = 15, 15, 15, 15
+fixc_typ = 1, 1, 1, 1
+tone_grid = 10
+gnum = 2.0
+border = 'wldin'
+mxitv = 0.0, 0.0
+myitv = 0.0, 0.0
+/
+
+&fileopt
+cfhname = ''
+!sfhname = '../exp/testcase_1h_upper/mean_ruby/mean_gues_20180926-120000.'
+sfhname = '../exp/testcase_1h_upper/mean_ruby/mean_anal_20180926-120000.'
+cffname = ''
+!sffname = '.bin.div'
+sffname = '.bin.div_diff'
+sameflag = .false.
+lfnum = 0
+lfname = ''
+pfname = '.bin.tcenter.sub'
+undefc = -1.0e35
+/
+
+&input
+nx = 640
+ny = 720
+nz = 36
+xmin = 0.0
+ymin = 0.0
+zmin = 0.0
+dx = 3.0e3
+dy = 3.0e3
+dz = 500.0
+dt = 600
+fnumber = 1
+grd_rec = 6
+shade_num = 8
+cmin = 1.0
+cmax = 150.0
+contmin = 100.0
+!contmin = 5000.0
+!contmax = 6000.0
+contmax = 2000.0
+/
+
+&filename
+hname = '../exp/testcase_1h_upper/mean_ruby/mean_gues_20180926-120000.'
+footname = '.bin.div'
+ininame = 0000
+grdname = '1_output/1h_eye_A08/hist.geo_20180926-000000.bin.dat'
+!title_name = 'Divergence @ 500 m (x10\^{-3} s\^{-1})'
+title_name = 'Divergence @ 14 km (x10\^{-3} s\^{-1})'
+!title_name = 'ΔDivergence @ 500 m (x10\^{-3} s\^{-1})'
+!title_name = 'ΔDivergence @ 14 km (x10\^{-3} s\^{-1})'
+/
+
+&file_form
+form_typec = '(f6.1)'
+form_types = '(f5.2)'
+/
+
+&dcl_dump
+!ldump = .true.
+!lwait = .false.
+!lwait1 = .false.
+ldump = .false.
+lwait = .true.
+lwait1 = .true.
+IWS = 2
+cmap = 4
+log_color = .false.
+!log_color = .true.
+sysfont = 'Nimbus Sans L Bold 12'
+/
+
+&map_info
+lon_min = 122.5
+lat_min = 20.0
+dlon = 0.0228299
+dlat = 0.0225557
+/
+
+&val_cont
+d2valc = ''
+d3valc = ''
+!ad2valc = '00001'  ! 500m
+ad2valc = '0000000000000000000000000001'  ! 14km
+ad3valc = ''
+/
+
+&option
+nnx = 151,300
+nny = 271,420
+nnz = 1,45
+/
+
+&factor
+sfact = 1.0e3
+cfact = 1.0e0
+vxfact = 1.0
+vyfact = 1.0
+vxname = 'Longitude (degrees)'
+vyname = 'Latitude  (degrees)'
+/
+
+&cress
+sthopt = -1
+dzmin = 200.0
+layer1 = 0.0
+layer2 = 17000.0
+/

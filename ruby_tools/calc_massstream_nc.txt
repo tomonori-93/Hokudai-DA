@@ -1,0 +1,6 @@
+'1_output/1h_eye_A08/.vr/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'vr'
+'1_output/1h_eye_A08/.w/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'w'
+'1_output/1h_eye_A08/.p/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'p'
+'1_output/1h_eye_A08/.pt/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'pt'
+'1_output/1h_eye_A08/.massstream/hist.dmp_20180927-120000.bin.dat.nc', 'r', 'z', 't', 'dummy'
+1, 200, 1, 36

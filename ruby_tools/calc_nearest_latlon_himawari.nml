@@ -1,0 +1,9 @@
+&input
+ listname = "list_nearest_latlon_bst.dat"
+ geoname = "1_output/1h_eye_A08_identicaltwin/hist.geo_20180926-000000.bin.dat"  ! identicaltwin 実験の geo ファイルを流用
+ outname = "point_nearest_latlon_bst.dat"
+ nx = 640
+ ny = 720
+ lonord = 3
+ latord = 2
+/

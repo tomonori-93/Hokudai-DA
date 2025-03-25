@@ -1,0 +1,4 @@
+&
+'TEMPLATE_IN' 'TEMPLATE_OUT' 'r' 'z' 't' 1 98 100
+'pt'
+/

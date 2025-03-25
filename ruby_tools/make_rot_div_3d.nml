@@ -1,0 +1,82 @@
+&coropt
+axopt = 'xy'
+rot_flag = .true.
+div_flag = .true.
+undef = -9.9999e+30
+/
+
+&input
+nx = 640
+ny = 720
+nz = 36
+xmin = 1.5e3
+ymin = 1.5e3
+zmin = 0.0
+dx = 3.0e3
+dy = 3.0e3
+dz = 450.0
+dt = 3600
+fnumber = 1
+grd_rec = 6
+shade_num = 10
+cmin = -10.0
+cmax = 90.0
+contmin = -10.0
+contmax = 90.0
+/
+
+&filename
+hname = '../exp/testcase_1h_eye_A08_himawari//mean_ruby/mean_gues_'
+footname = '-120000.000.bin'
+ininame = 20180928
+grdname = 'CO_l1ladd/Cress/NHOES_couple_20101014.geography.united.bin'
+title_name = '_azimuthmeanVt(CTL)"'
+/
+
+&file_form
+form_typec = '(f5.1)'
+form_types = '(f5.1)'
+/
+
+&dcl_dump
+ldump = .false.
+lwait = .true.
+lwait1 = .true.
+IWS = 2
+cmap = 1
+log_color = .false.
+/
+
+&map_info
+lon_min = 130.98671
+lat_min = 1.19989
+dlon = 0.0228299
+dlat = 0.0225557
+/
+
+&val_cont
+d2valc = ''
+d3valc = '11'
+ad2valc = ''
+ad3valc = ''
+/
+
+&option
+nnx = 1,640
+nny = 1,720
+nnz = 1,36
+/
+
+&factor
+sfact = 1.0
+cfact = 1.0
+vxfact = 1.0
+vyfact = 1.0
+/
+
+&cress
+sthopt = 0
+dzmin = 200.0
+layer1 = 0.0
+layer2 = 20000.0
+/

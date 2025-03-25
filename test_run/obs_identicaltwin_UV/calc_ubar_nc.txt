@@ -1,0 +1,7 @@
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.vr.united.bin.nc', 'r', 'z', 't', 'vr'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.vt.united.bin.nc', 'r', 'z', 't', 'vt'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.p.united.bin.nc', 'r', 'z', 't', 'p'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.pt.united.bin.nc', 'r', 'z', 't', 'pt'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.dmp.ubar_budget.united.bin.nc', 'r', 'z', 't', 'ubar'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.geography.united.bin.tcenter.coriolis'
+'2018092112_NCEP_2km_nc/T1824.2km.NCEP.03.geography.united.bin.tcenter.ubar.txt'

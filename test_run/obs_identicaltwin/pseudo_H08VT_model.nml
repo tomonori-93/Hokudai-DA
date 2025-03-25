@@ -1,0 +1,89 @@
+&opt
+obs_list = 'eye/obs_2018092800.csv.autout'
+model_fname = 'UV_.vt.grd.nc'
+model_vname = 'vt'
+model_rname = 'r'
+model_zname = 'z'
+model_tname = 't'
+obs_undef = -999.0e35
+model_undef = -1.0e35
+flag_relobs = .false.
+val_relobs = 0.01
+flag_rotspeed = .false.
+refrad_rotspeed = 30.0e3
+/
+
+&input
+nx = 10
+ny = 10
+nz = 10
+xmin = 118.5
+ymin = 0.0
+zmin = 0.0
+dx = 0.02
+dy = 0.02
+dz = 450.0
+dt = 21600
+fnumber = 27
+grd_rec = 6
+shade_num = 70
+cmin = -5.0
+cmax = 5.0
+contmin = -5.0
+contmax = 5.0
+/
+
+&filename
+hname = '101/T1721.101.dmp'
+footname = '.united.bin.rh'
+!footname = '.united.bin.temp'
+ininame = 0000
+grdname = '101/T1721.101.geography.united.bin.zastgeo.zgbar'
+title_name = "azimus mean w"
+/
+
+&file_form
+form_typec = '(f5.1)'
+form_types = '(f5.1)'
+/
+
+&dcl_dump
+ldump = .false.
+lwait = .true.
+lwait1 = .true.
+IWS = 2
+/
+
+&map_info
+lon_min = 118.5
+lat_min = 0.0
+dlon = 0.02
+dlat = 0.02
+/
+
+&val_cont
+d2valc = ''
+d3valc = '1'
+ad2valc = ''
+ad3valc = '-'
+/
+
+&option
+nnx = 613, 662   ! 637
+nny = 1021, 1070   ! 1045
+nnz = 1, 55
+/
+
+&factor
+sfact = 1.0
+cfact = 1.0
+vxfact = 1.0
+vyfact = 1.0
+/
+
+&cress
+sthopt = 1
+dzmin = 200.0
+layer1 = 0.0
+layer2 = 17000.0
+/

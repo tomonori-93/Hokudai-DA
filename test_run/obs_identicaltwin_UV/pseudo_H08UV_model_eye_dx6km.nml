@@ -1,0 +1,98 @@
+&opt  ! little endian データから直接読み込むので, export F_UFMTENDIAN="little:11"
+initime%year_d = 2018
+initime%month_d = 09
+initime%day_d = 26
+initime%hour_d = 00
+initime%min_d = 00
+initime%sec_d = 00
+ohead = 'eye_dx6km/obs_', 'eye_dx6km/obs_', 
+ofoot = '.csv.auto_u', '.csv.auto_v', 
+undef = -1.0e35
+obselm = 2819, 2820  ! U/V
+obstyp = 4, 4,  ! 'SATWND'
+obserr = 2.0, 2.0, 
+flag_relobs = .false.
+val_relobs = 0.01
+geolon_ord = 3
+geolat_ord = 2
+r_in = 0.0
+r_out = 60.0e3
+z_bot = 1900.0
+z_top = 2100.0
+stepx = 2
+stepy = 2
+/
+
+&input
+nx = 640
+ny = 720
+nz = 36
+xmin = 0.0
+ymin = 0.0
+zmin = 0.0
+dx = 3.0e3
+dy = 3.0e3
+dz = 450.0
+dt = 3600
+fnumber = 1
+grd_rec = 6
+shade_num = 70
+cmin = -5.0
+cmax = 5.0
+contmin = -5.0
+contmax = 5.0
+/
+
+&filename
+hname = '0_data/UV_'
+footname = '.grd'
+ininame = 172800
+grdname = '0_data/GEO.grd'
+title_name = "azimus mean w"
+/
+
+&file_form
+form_typec = '(f5.1)'
+form_types = '(f5.1)'
+/
+
+&dcl_dump
+ldump = .false.
+lwait = .true.
+lwait1 = .true.
+IWS = 2
+/
+
+&map_info
+lon_min = 118.5
+lat_min = 0.0
+dlon = 0.02
+dlat = 0.02
+/
+
+&val_cont
+d2valc = ''
+d3valc = '11'
+ad2valc = ''
+ad3valc = ''
+/
+
+&option
+nnx = 1, 640
+nny = 1, 720
+nnz = 1, 36
+/
+
+&factor
+sfact = 1.0
+cfact = 1.0
+vxfact = 1.0
+vyfact = 1.0
+/
+
+&cress
+sthopt = -2
+dzmin = 200.0
+layer1 = 0.0
+layer2 = 17000.0
+/
