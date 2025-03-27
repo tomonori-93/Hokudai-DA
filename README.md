@@ -33,4 +33,4 @@
 -->
 
 # References
-1. Tsujino, S. and T. Horinouchi, 2025: A Feasibility Study on Objective Analysis of Tropical-Cyclone Intensity Based on Data Assimilation of Inner-Core Atmospheric Motion Vectors. _Journal of Geophysical Research: Atmospheres._ , (submitted). (https://doi.org/10.1007/978-3-031-40567-9_19)
+1. Tsujino, S. and T. Horinouchi, 2025: A Feasibility Study on Objective Analysis of Tropical-Cyclone Intensity Based on Data Assimilation of Inner-Core Atmospheric Motion Vectors. _Journal of Geophysical Research: Atmospheres._ , (submitted). <!--[preprint](https://doi.org/10.1007/978-3-031-40567-9_19)-->
