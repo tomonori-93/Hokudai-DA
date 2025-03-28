@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15101998.svg)](https://doi.org/10.5281/zenodo.15101998)
+
 # About this repository
 * Provide research information on data assimilation of satellite observations by [Horinouchi-lab](https://wwwoa.ees.hokudai.ac.jp/people/horinouchi-lab/TC/index.html) in Hokkaido University
 * Share numerical simulation codes
@@ -34,3 +36,8 @@
 
 # References
 1. Tsujino, S. and T. Horinouchi, 2025: A Feasibility Study on Objective Analysis of Tropical-Cyclone Intensity Based on Data Assimilation of Inner-Core Atmospheric Motion Vectors. _Journal of Geophysical Research: Atmospheres._ , (submitted). <!--[preprint](https://doi.org/10.1007/978-3-031-40567-9_19)-->
+
+# Cite as
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15101998.svg)](https://doi.org/10.5281/zenodo.15101998)
+
+The above DOI corresponds to the latest versioned release as published to Zenodo, where you will find all earlier releases. To cite ro-crate-py independent of version, use https://doi.org/10.5281/zenodo.15101998, which will always redirect to the latest release.
