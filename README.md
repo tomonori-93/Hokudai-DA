@@ -7,8 +7,10 @@
 ## Base system
 * **[SCALE-RM](https://scale.riken.jp/ja/scale-rm/)**: forecast model code developed by RIKEN in Kobe
   * [Base version-5.2.6](https://github.com/scale-met/scale/releases/tag/5.2.6)
+  * [Nishizawa et al. (2015)](https://doi.org/10.5194/gmd-8-3393-2015), [Sato et al. (2015)](https://doi.org/10.1186/s40645-015-0053-6)
 * **[LETKF](https://github.com/SCALE-LETKF-RIKEN/scale-letkf)**: assimilation code developed by RIKEN in Kobe
   * [Base available for SCALE-RM version-5.2.6](https://github.com/gylien/scale-letkf)
+  * [Lien et al. (2017)](https://doi.org/10.2151/sola.2017-001)
 
 ## Updates from the base system
 * New observation operators for satellite atmospheric motion vectors proposed by [Tsukada & Horinouchi (2020)](https://doi.org/10.1029/2020GL087637), [Horinouchi et al. (2023)](https://doi.org/10.1175/MWR-D-22-0179.1), and [Tsukada et al. (2024)](https://doi.org/10.1029/2023JD040585).
